@@ -15,6 +15,7 @@ export function ScrollChoreography() {
       frame = 0;
       if (reduced.matches || document.hidden) return;
       const height = window.innerHeight;
+      const mobile = window.innerWidth < 760;
       const measurements = [...active].map((element) => ({
         element,
         bounds: element.getBoundingClientRect(),
@@ -22,7 +23,7 @@ export function ScrollChoreography() {
       for (const { element, bounds } of measurements) {
         const progress = Math.max(
           0,
-          Math.min(1, (height * 0.94 - bounds.top) / (height * 0.55)),
+          Math.min(1, (height * 0.94 - bounds.top) / (height * 0.7)),
         );
         const depth = Math.max(
           -1,
@@ -32,10 +33,13 @@ export function ScrollChoreography() {
               height,
           ),
         );
-        element.style.setProperty("--type-offset", `${(1 - progress) * 25}px`);
+        element.style.setProperty(
+          "--type-offset",
+          `${(1 - progress) * (mobile ? 42 : 64)}px`,
+        );
         element.style.setProperty(
           "--art-offset",
-          `${depth * (window.innerWidth < 760 ? 14 : 32)}px`,
+          `${depth * (mobile ? 25 : 60)}px`,
         );
         element.dataset.scrollProgress = progress.toFixed(3);
       }
@@ -58,6 +62,7 @@ export function ScrollChoreography() {
       (entries) => {
         for (const entry of entries) {
           const element = entry.target as HTMLElement;
+          element.dataset.sceneActive = String(entry.isIntersecting);
           if (entry.isIntersecting) active.add(element);
           else active.delete(element);
         }

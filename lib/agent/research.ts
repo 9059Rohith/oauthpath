@@ -56,6 +56,21 @@ const discoverySchema = z.object({
 // Maintained first-party entry points complement search; they are always fetched
 // afresh and never represented as search-discovered or prevalidated facts.
 const providerDocuments: Record<string, { title: string; url: string }[]> = {
+  "asana.com": [
+    {
+      title: "Asana OAuth setup (maintained entry point)",
+      url: "https://developers.asana.com/docs/oauth",
+    },
+    {
+      title:
+        "Asana publication and external-distribution policy (maintained entry point)",
+      url: "https://developers.asana.com/docs/publish-your-app",
+    },
+    {
+      title: "Asana workspace sharing settings (maintained entry point)",
+      url: "https://developers.asana.com/docs/share-your-app",
+    },
+  ],
   "miro.com": [
     {
       title: "Miro OAuth setup (maintained entry point)",
@@ -121,6 +136,8 @@ function launchCoverage(
   if (audience === "internal")
     return "The requested scope is internal users only. Check documented internal account eligibility, registration, permissions and customer-admin controls. Explain external distribution limits only as a conditional future expansion path, not mandatory work for the internal scenario. Do not infer that an internal organization always qualifies for exemptions.";
   switch (domain.toLowerCase().replace(/^www\./, "")) {
+    case "asana.com":
+      return "Compare Publish your app with Share your app. A technically available Any workspace authorization setting does not negate a publication-policy requirement to submit before availability outside the developer organization/development environment. If both statements are present, expose the policy conflict with citations and ask Asana to clarify the external rollout route; do not silently choose directory-only review. Keep customer-admin controls separate. If documented, label the one-week target as an INITIAL RESPONSE target, never final approval duration or a guarantee. Check every field including summary, optional-step labels, blockers and handoffs for contradictions.";
     case "miro.com":
       return "Use the first-party distribution page to distinguish direct installation-link sharing from Marketplace listing. Partner acceptance, Marketplace review and listing traction thresholds are not prerequisites for every external installation. Use the manifest to distinguish REST redirectUris from the embedded Web SDK sdkUri; keep that distinction in requirements, completion checks, blockers and handoffs. Use the customer app-management page to establish conditional installation controls, not universal administrator-only installation. If that page is unavailable, explicitly ask the customer to confirm policy; do not assert either mandatory administrator status or unrestricted rights. Check every guide field for contradictions with these boundaries.";
     case "dropbox.com":
@@ -674,6 +691,179 @@ function repairMiroConsistency(
     result[key] = [...new Set(result[key].map((value) => rewrite(value)))];
 }
 
+/** Reconcile a verified publication gate with a technically permissive sharing page. */
+function applyAsanaSourcePolicy(
+  guide: Guide,
+  pages: { source: Source; text: string }[],
+  audience: ResearchOptions["audience"],
+) {
+  if (guide.domain !== "asana.com") return;
+  const publication = pages.find((page) => {
+    const url = new URL(page.source.url);
+    const content = normalizeEvidenceText(page.text);
+    return (
+      url.hostname === "developers.asana.com" &&
+      url.pathname.replace(/\/$/, "") === "/docs/publish-your-app" &&
+      content.includes("only need to submit your app") &&
+      content.includes(
+        "beyond your own organization or development environment",
+      ) &&
+      content.includes("submit for review")
+    );
+  });
+  if (!publication) return;
+  const sharing = pages.find((page) => {
+    const url = new URL(page.source.url);
+    return (
+      url.hostname === "developers.asana.com" &&
+      url.pathname.replace(/\/$/, "") === "/docs/share-your-app" &&
+      normalizeEvidenceText(page.text).includes("any workspace") &&
+      normalizeEvidenceText(page.text).includes(
+        "allow users from any asana workspace to authorize",
+      )
+    );
+  });
+  const refs = [publication.source.id, ...(sharing ? [sharing.source.id] : [])];
+  const external = audience !== "internal";
+  const policy = external
+    ? "The publication policy requires submission when making the app available beyond your own organization or development environment. Confirm the applicable review route with Asana before external rollout; Any workspace authorization is not evidence of a review exemption."
+    : "Before expanding beyond your organization or development environment, confirm Asana's publication-policy submission requirement. Do not interpret Any workspace authorization as an exemption from external-distribution review.";
+  const contraryClaim = (value: string) =>
+    /review|submi(?:t|ssion)|approv|publish/i.test(value) &&
+    /only|optional|not required|no\b|without|unnecessary|not need|do not need/i.test(
+      value,
+    ) &&
+    /directory|marketplace|external|workspace/i.test(value) &&
+    (!/admin|customer/i.test(value) ||
+      /directory|marketplace|provider|publication/i.test(value));
+  const qualify = (value: string, limit: number) =>
+    value
+      .split(/(?<=[.!?])\s+/)
+      .map((sentence) => (contraryClaim(sentence) ? policy : sentence))
+      .join(" ")
+      .slice(0, limit);
+  guide.summary = external
+    ? "Register Asana OAuth, request minimal scopes, and test consent. Clarify the publication-policy review requirement before external rollout; workspace sharing alone does not establish approval."
+    : "Register and test Asana OAuth for your organization. Confirm the separate publication-policy review route before expanding to external workspaces.";
+  guide.approval = external
+    ? "Publish your app requires submission for availability outside your organization/development environment, not just directory listing. Clarify the external rollout route with Asana; customer-admin approval is separate."
+    : "For this internal scenario, confirm the documented internal/testing route. External expansion triggers a separate publication-policy submission question; customer-admin controls remain separate.";
+  if (external) guide.difficulty = "Review required";
+  const initialResponse = normalizeEvidenceText(publication.text).includes(
+    "initial response on app submissions within one week",
+  );
+  guide.wait = initialResponse
+    ? "Initial response target: within one week after submission. Review timing can vary; final approval duration is unknown. This is not an approval SLA or guarantee."
+    : "Final approval duration is unknown; no applicable initial-response target was established from the retrieved publication policy.";
+  guide.scenario = qualify(guide.scenario, 500);
+  guide.effort = qualify(guide.effort, 400);
+  guide.requirements = guide.requirements.filter(
+    (claim) => !contraryClaim(claim.text),
+  );
+  guide.requirements.unshift({
+    text: policy,
+    evidence: "documented",
+    sourceIds: refs,
+    quote: "beyond your own organization or development environment",
+  });
+  guide.requirements = guide.requirements.slice(0, 4);
+  guide.steps = guide.steps.map((step) => {
+    const changed = [
+      step.title,
+      step.description,
+      step.doneWhen,
+      step.ifBlocked,
+    ].some(contraryClaim);
+    return changed
+      ? {
+          ...step,
+          title: contraryClaim(step.title)
+            ? "Confirm the applicable external review route"
+            : step.title,
+          description: qualify(step.description, 1400),
+          doneWhen: qualify(step.doneWhen, 500),
+          ifBlocked: qualify(step.ifBlocked, 600),
+          sourceIds: [...new Set([...step.sourceIds, ...refs])],
+        }
+      : step;
+  });
+  // Only replace a review/submission task, never registration, hosting, token,
+  // callback or API-test work. Place the gate before inviting external users.
+  const reviewIndex = guide.steps.findIndex(
+    (step) =>
+      step.id === "asana-confirm-external-review" ||
+      (/^(confirm the applicable external review route|submit|apply|request)/i.test(
+        step.title,
+      ) &&
+        /review|approval|directory/i.test(step.title)),
+  );
+  if (reviewIndex >= 0) guide.steps.splice(reviewIndex, 1);
+  const releaseIndex = guide.steps.findIndex((step) =>
+    /invite|release|roll.?out|launch|share.*(link|users)/i.test(step.title),
+  );
+  const reviewStep: Guide["steps"][number] = {
+    id: "asana-confirm-external-review",
+    title: external
+      ? "Resolve the external-distribution review requirement"
+      : "Before external expansion, confirm the review route",
+    description: `${policy} Use Submit for review in the developer console for the documented submission path. Keep directory discoverability, provider review and customer-admin consent separate.`,
+    owner: "You",
+    doneWhen: external
+      ? "Asana has clarified the applicable external-distribution policy, and any required submission and review outcome are recorded before rollout."
+      : "The internal route is confirmed; the review question is recorded as a gate before future external expansion.",
+    ifBlocked:
+      "Ask Asana developer support to reconcile the publication policy with the workspace-sharing instructions. Continue internal setup and scoped testing while clarification is pending; do not assume the easier external route is permitted.",
+    sourceIds: refs,
+  };
+  guide.steps.splice(
+    releaseIndex < 0 ? guide.steps.length : releaseIndex,
+    0,
+    reviewStep,
+  );
+  guide.blockers = guide.blockers.map((blocker) => ({
+    ...blocker,
+    title: contraryClaim(blocker.title)
+      ? "Confirm the applicable review policy"
+      : blocker.title,
+    description: qualify(blocker.description, 700),
+    action: qualify(blocker.action, 800),
+    sourceIds: [blocker.title, blocker.description, blocker.action].some(
+      contraryClaim,
+    )
+      ? [...new Set([...blocker.sourceIds, ...refs])]
+      : blocker.sourceIds,
+  }));
+  if (sharing)
+    guide.blockers = [
+      {
+        title: "Publication and sharing guidance need reconciliation",
+        description:
+          "The sharing page permits Any workspace authorization, while the publication page requires submission for availability beyond the developer organization/development environment. A successful authorization does not resolve this policy conflict.",
+        action:
+          "Confirm the external rollout policy with Asana developer support before launch. Keep user consent and customer-admin permission as separate checks.",
+        sourceIds: refs,
+      },
+      ...guide.blockers,
+    ].slice(0, 8);
+  guide.technical = guide.technical.map((item) =>
+    contraryClaim(`${item.label} ${item.value}`)
+      ? {
+          label: "External-distribution review policy",
+          value: policy,
+          sourceIds: [...new Set([...item.sourceIds, ...refs])],
+        }
+      : item,
+  );
+  guide.agentCan = guide.agentCan.map((task) => qualify(task, 500));
+  guide.humanMust = guide.humanMust.map((task) => qualify(task, 500));
+  guide.uncertainties = guide.uncertainties.map((note) => qualify(note, 700));
+  if (sharing)
+    guide.uncertainties.unshift(
+      `Source conflict: ${publication.source.id} (Publish your app) establishes an external-distribution submission gate; ${sharing.source.id} (Share your app) describes Any workspace authorization. Confirm how the policies apply together rather than inferring a directory-only review exemption.`,
+    );
+  guide.uncertainties = guide.uncertainties.slice(0, 15);
+}
+
 // Small, reviewable provider adapters protect pivotal launch facts from model
 // omissions. Each adapter activates only when its policy is present in THIS
 // run's fetched first-party document; source failure never becomes evidence.
@@ -911,6 +1101,7 @@ export function applyLaunchSafeguards(
       );
     }
   }
+  applyAsanaSourcePolicy(result, pages, audience);
   result.uncertainties = result.uncertainties
     .map(qualifyEvidenceAbsence)
     .slice(0, 15);

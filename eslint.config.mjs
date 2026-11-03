@@ -9,6 +9,7 @@ export default defineConfig([
     ".vercel/**",
     "next-env.d.ts",
     "docs/**",
+    ".local/**",
     "playwright-report/**",
     "test-results/**",
   ]),

@@ -1,23 +1,84 @@
 import { expect, test } from "@playwright/test";
 
-test("hero visibly responds to pointer movement and scrolling", async ({
+for (const width of [390, 1440]) {
+  test(`hero stays level with visible vertical parallax at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("/");
+    await expect(page.locator(".hero-cinematic")).toHaveAttribute(
+      "data-motion",
+      "enabled",
+    );
+    const artwork = page.locator(".hero-art-visual");
+    const matrix = () =>
+      artwork.evaluate((element) => {
+        const m = new DOMMatrix(getComputedStyle(element).transform);
+        return {
+          x: m.m41,
+          y: m.m42,
+          a: m.m11,
+          b: m.m12,
+          c: m.m21,
+          d: m.m22,
+          perspective: m.m34,
+        };
+      });
+    await page.mouse.move(20, 180);
+    const initial = await matrix();
+    await page.mouse.move(width - 20, 380);
+    await expect.poll(matrix).toEqual(initial);
+    await page.evaluate(() =>
+      window.scrollTo({ top: 320, behavior: "instant" }),
+    );
+    await expect
+      .poll(async () => (await matrix()).y)
+      .toBeGreaterThan(width < 760 ? 20 : 50);
+    expect(await matrix()).toMatchObject({
+      x: 0,
+      a: 1,
+      b: 0,
+      c: 0,
+      d: 1,
+      perspective: 0,
+    });
+    expect((await matrix()).y).toBeLessThanOrEqual(width < 760 ? 25 : 60);
+    await expect(page.locator(".headline-glow").first()).toHaveCSS(
+      "animation-name",
+      /oauth-text-sweep/,
+    );
+  });
+}
+
+test("page stays inside every supported viewport throughout scrolling", async ({
   page,
 }) => {
   await page.goto("/");
-  const artwork = page.locator(".hero-art-visual");
-  const transform = () =>
-    artwork.evaluate((element) => getComputedStyle(element).transform);
-  await page.mouse.move(100, 180);
-  const initial = await transform();
-  await page.mouse.move(1200, 380);
-  await expect.poll(transform).not.toBe(initial);
-  const pointed = await transform();
-  await page.evaluate(() => window.scrollTo({ top: 280, behavior: "instant" }));
-  await expect.poll(transform).not.toBe(pointed);
-  await expect(page.locator(".headline-glow").first()).toHaveCSS(
-    "animation-name",
-    /oauth-text-sweep/,
-  );
+  for (const width of [320, 360, 390, 768, 1024, 1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const position of [0, 0.5, 1]) {
+      await page.evaluate(
+        (fraction) =>
+          window.scrollTo({
+            top:
+              (document.documentElement.scrollHeight - innerHeight) * fraction,
+            behavior: "instant",
+          }),
+        position,
+      );
+      await expect
+        .poll(() =>
+          page.evaluate(() =>
+            Math.max(
+              document.documentElement.scrollWidth,
+              document.body.scrollWidth,
+            ),
+          ),
+        )
+        .toBe(width);
+      expect(await page.evaluate(() => window.scrollX)).toBe(0);
+    }
+  }
 });
 
 test("reduced motion disables hero parallax and text animation", async ({
@@ -59,11 +120,19 @@ test("scrolling drives section typography and artwork while content remains acce
       .first()
       .evaluate((element) => getComputedStyle(element).transform);
   const initial = await offset();
+  const art = scene.locator(".section-parallax img").first();
+  const initialArt = await art.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
   await page.evaluate(
     (y) => window.scrollTo({ top: y - innerHeight * 0.2, behavior: "instant" }),
     top,
   );
   await expect.poll(offset).not.toBe(initial);
+  await expect
+    .poll(() => art.evaluate((element) => getComputedStyle(element).transform))
+    .not.toBe(initialArt);
+  await expect(scene.locator(".scroll-word").first()).toHaveCSS("opacity", "1");
   await expect(
     page.getByRole("heading", { name: "Find your next integration." }),
   ).toBeVisible();
@@ -113,6 +182,13 @@ test("reduced motion keeps section text static and all provider links available"
     "transform",
     "none",
   );
+  await expect(page.locator("#library .section-parallax img")).toHaveCSS(
+    "transform",
+    "none",
+  );
+  await expect(
+    page.locator("#library .scroll-type-accent .scroll-word").first(),
+  ).toHaveCSS("animation-name", "none");
   await expect(page.locator(".marquee-track").first()).toHaveCSS(
     "animation-name",
     "none",

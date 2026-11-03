@@ -77,6 +77,37 @@ const miroControls = {
   },
   text: "By default, users can add any app for their team. Company Admins can restrict user app management to allow only certain apps to be added by their teams. Team and Company Admins can allow or restrict team members to add new apps for the team.",
 };
+const asanaPublication = {
+  source: {
+    id: "asana-publication",
+    title: "Publish your app",
+    url: "https://developers.asana.com/docs/publish-your-app",
+  },
+  text: "Only need to submit your app; beyond your own organization or development environment. Submit for review. Initial response on app submissions within one week.",
+};
+const asanaSharing = {
+  source: {
+    id: "asana-sharing",
+    title: "Share your app",
+    url: "https://developers.asana.com/docs/share-your-app",
+  },
+  text: "Any workspace: allow users from any Asana workspace to authorize.",
+};
+function asanaDraft() {
+  const guide = draft();
+  guide.name = "Asana";
+  guide.domain = "asana.com";
+  guide.sources = [
+    {
+      id: "source-1",
+      title: "OAuth",
+      url: "https://developers.asana.com/docs/oauth",
+    },
+    asanaPublication.source,
+    asanaSharing.source,
+  ];
+  return guide;
+}
 function miroDraft() {
   const guide = draft();
   guide.domain = "miro.com";
@@ -104,6 +135,169 @@ beforeEach(() => {
 });
 
 describe("research source boundaries", () => {
+  it("fetches Asana OAuth, publication and sharing entry points instead of storing policy facts", () => {
+    const urls = registeredProviderDocuments("asana.com").map((doc) => doc.url);
+    expect(urls).toEqual([
+      "https://developers.asana.com/docs/oauth",
+      asanaPublication.source.url,
+      asanaSharing.source.url,
+    ]);
+    expect(urls.length).toBeLessThanOrEqual(4);
+  });
+  it("reconciles the actual Asana directory-only mistake across guide fields without replacing setup work", () => {
+    const guide = asanaDraft();
+    const wrong =
+      "Review is only required for App Directory listing, not external installs.";
+    guide.summary = wrong;
+    guide.approval = wrong;
+    guide.scenario = wrong;
+    guide.requirements = [
+      {
+        text: wrong,
+        evidence: "documented",
+        sourceIds: [asanaSharing.source.id],
+        quote: "Any workspace",
+      },
+    ];
+    const register = {
+      ...guide.steps[0]!,
+      id: "register",
+      title: "Register OAuth app",
+      description: "Create the app and register tasks:read.",
+      doneWhen: "Client ID and callback are configured.",
+    };
+    const implement = {
+      ...guide.steps[1]!,
+      id: "implement",
+      title: "Implement and test OAuth",
+      description:
+        "Exchange the code, store tokens and make a scoped read-only API test.",
+      doneWhen: "The authorized task read succeeds.",
+    };
+    guide.steps = [
+      register,
+      implement,
+      {
+        ...register,
+        id: "invite",
+        title: "Invite external users",
+        description: `Share the authorization URL. ${wrong}`,
+      },
+      {
+        ...register,
+        id: "review",
+        title: "Submit for App Directory Review (Optional)",
+        description: wrong,
+      },
+    ];
+    guide.blockers = [
+      {
+        title: "Directory-only review exception",
+        description: wrong,
+        action: wrong,
+        sourceIds: [asanaSharing.source.id],
+      },
+    ];
+    guide.technical = [
+      {
+        label: "External review",
+        value: wrong,
+        sourceIds: [asanaSharing.source.id],
+      },
+    ];
+    guide.agentCan = [wrong];
+    guide.humanMust = [wrong];
+    guide.uncertainties = [wrong];
+    const result = applyLaunchSafeguards(
+      guide,
+      [asanaPublication, asanaSharing],
+      "oauth2",
+      "public",
+    );
+    expect(JSON.stringify(result)).not.toContain(wrong);
+    expect(result.steps.find((step) => step.id === "register")).toEqual(
+      register,
+    );
+    expect(result.steps.find((step) => step.id === "implement")).toEqual(
+      implement,
+    );
+    expect(
+      result.steps.findIndex(
+        (step) => step.id === "asana-confirm-external-review",
+      ),
+    ).toBeLessThan(result.steps.findIndex((step) => step.id === "invite"));
+    expect(result.requirements[0]?.sourceIds).toEqual([
+      asanaPublication.source.id,
+      asanaSharing.source.id,
+    ]);
+    expect(result.requirements[0]?.quote).toBe(
+      "beyond your own organization or development environment",
+    );
+    expect(result.wait).toContain("Initial response target: within one week");
+    expect(result.wait).toContain("final approval duration is unknown");
+    expect(result.wait).toContain("not an approval SLA");
+    expect(result.uncertainties[0]).toContain("Source conflict:");
+    expect(result.uncertainties[0]).toContain("asana-publication");
+    expect(result.uncertainties[0]).toContain("asana-sharing");
+    expect(result.approval).toContain("customer-admin approval is separate");
+    expect(() => assertGuide(result)).not.toThrow();
+    expect(
+      auditRequirementQuotes(result, [asanaPublication, asanaSharing])
+        .requirements[0]?.evidence,
+    ).toBe("documented");
+  });
+  it("does not invent an Asana policy gate or timing from missing, unrelated, or incomplete source evidence", () => {
+    const guide = asanaDraft();
+    guide.approval = "Review route unknown";
+    guide.wait = "Unknown";
+    for (const pages of [
+      [],
+      [asanaSharing],
+      [{ ...asanaPublication, text: "General publication information." }],
+      [
+        {
+          ...asanaPublication,
+          source: {
+            ...asanaPublication.source,
+            url: "https://unrelated.example/docs/publish-your-app",
+          },
+        },
+      ],
+    ]) {
+      const result = applyLaunchSafeguards(guide, pages, "oauth2", "public");
+      expect(result.approval).toBe(guide.approval);
+      expect(result.wait).toBe("Unknown");
+    }
+    const noTarget = applyLaunchSafeguards(
+      guide,
+      [
+        {
+          ...asanaPublication,
+          text: asanaPublication.text.split(" Initial response")[0]!,
+        },
+      ],
+      "oauth2",
+      "public",
+    );
+    expect(noTarget.wait).not.toContain("one week");
+    expect(noTarget.uncertainties.join(" ")).not.toContain("Source conflict:");
+  });
+  it("keeps Asana review as an external expansion gate for an internal-only request", () => {
+    const guide = asanaDraft();
+    guide.difficulty = "Some setup";
+    const result = applyLaunchSafeguards(
+      guide,
+      [asanaPublication, asanaSharing],
+      "oauth2",
+      "internal",
+    );
+    expect(result.difficulty).toBe("Some setup");
+    expect(result.requirements[0]?.text).toContain("Before expanding");
+    expect(
+      result.steps.find((step) => step.id === "asana-confirm-external-review")
+        ?.doneWhen,
+    ).toContain("future external expansion");
+  });
   it("repairs the fresh v6 generic public-URL wording throughout a hosting step", () => {
     // Exact step from the subsequent actual browser run, miro-adee6b37cdb2.
     const guide = miroDraft();
