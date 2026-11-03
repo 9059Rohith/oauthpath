@@ -39,7 +39,7 @@ export function GuideCard({ guide: g }: { guide: GuideSummary }) {
       ? "gated"
       : "review";
   return (
-    <Link href={`/guide/${g.slug}`} className="guide-card">
+    <Link prefetch={false} href={`/guide/${g.slug}`} className="guide-card">
       <div className="card-top">
         <AppMark guide={g} />
         <span className={`difficulty ${level}`}>
@@ -100,7 +100,7 @@ export function Library({ featured = false }: { featured?: boolean }) {
           </p>
         </div>
         {featured ? (
-          <Link href="/library" className="text-link">
+          <Link prefetch={false} href="/library" className="text-link">
             Explore all {guides.length} guides <ArrowUpRight size={16} />
           </Link>
         ) : (
@@ -144,6 +144,7 @@ export function Library({ featured = false }: { featured?: boolean }) {
           <h3>No guide here yet.</h3>
           <p>Let the research agent investigate it.</p>
           <Link
+            prefetch={false}
             className="btn btn-primary"
             href={`/generate?q=${encodeURIComponent(query)}`}
           >

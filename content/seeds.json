@@ -181,6 +181,15 @@
     "humanMust": [
       "Own or administer the provider app.",
       "Authorize test access and approve requested permissions."
+    ],
+    "probes": [
+      {
+        "url": "https://github.com/settings/applications/new",
+        "status": 200,
+        "latencyMs": 1782,
+        "at": "2026-11-03T14:46:40.698Z",
+        "finding": "Anonymous registration entry point redirected to GitHub sign-in. No OAuth app was registered or token exchanged."
+      }
     ]
   },
   {
@@ -550,6 +559,15 @@
     "humanMust": [
       "Administer the development workspace.",
       "Approve permissions and submit the review packet."
+    ],
+    "probes": [
+      {
+        "url": "https://api.slack.com/apps",
+        "status": 200,
+        "latencyMs": 922,
+        "at": "2026-11-03T14:46:39.858Z",
+        "finding": "App-management page required sign-in to create an app. No workspace app was created or installed."
+      }
     ]
   },
   {
@@ -733,6 +751,22 @@
     "humanMust": [
       "Own the project and verify the domain.",
       "Approve disclosures and any assessor agreement."
+    ],
+    "probes": [
+      {
+        "url": "https://accounts.google.com/.well-known/openid-configuration",
+        "status": 200,
+        "latencyMs": 170,
+        "at": "2026-11-03T14:46:39.070Z",
+        "finding": "Parsed public OIDC metadata including issuer, OAuth endpoints, and advertised S256. No client authentication, consent, or approval was tested."
+      },
+      {
+        "url": "https://console.cloud.google.com/apis/credentials/oauthclient",
+        "status": 0,
+        "latencyMs": 1742,
+        "at": "2026-11-03T14:46:40.638Z",
+        "finding": "Console response closed before completion. Login state and app-creation eligibility could not be confirmed."
+      }
     ]
   },
   {

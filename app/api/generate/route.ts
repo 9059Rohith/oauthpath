@@ -106,14 +106,16 @@ export async function POST(request: Request) {
         const message = error instanceof Error ? error.message : "UNKNOWN";
         const safe =
           message === "NEED_WEBSITE"
-            ? "AI research is not enabled yet. Paste the provider’s public website or documentation URL to run a document scan."
-            : message === "SOURCE_UNAVAILABLE"
-              ? "The provider’s public documentation did not respond. Try a direct documentation URL."
-              : message === "CITATION_FAILED"
-                ? "The draft did not pass citation checks. No unverified guide was published. Please retry."
-                : abort.signal.aborted
-                  ? "Research timed out. Try a direct OAuth documentation URL for a narrower scan."
-                  : "Research could not finish. Try a direct documentation URL, or open an existing guide.";
+            ? "We could not confidently identify this provider. Paste its official public website or OAuth documentation URL."
+            : message === "NO_SOURCES"
+              ? "No usable official OAuth sources were found. Try a direct provider documentation URL."
+              : message === "SOURCE_UNAVAILABLE"
+                ? "The provider’s public documentation did not respond. Try a direct documentation URL."
+                : message === "CITATION_FAILED"
+                  ? "The draft did not pass citation checks. No unverified guide was published. Please retry."
+                  : abort.signal.aborted
+                    ? "Research timed out. Try a direct OAuth documentation URL for a narrower scan."
+                    : "Research could not finish. Try a direct documentation URL, or open an existing guide.";
         send("error", { message: safe });
       } finally {
         clearInterval(heartbeat);

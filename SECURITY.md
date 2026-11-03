@@ -26,6 +26,6 @@ The app sets Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, X
 
 Quota reservation fails closed if storage is unavailable. Immutable slot writes protect against cross-instance races. Failed attempts consume capacity intentionally. Raw IPs are not persisted; network identifiers use a secret HMAC with a day component. Add retention cleanup for quota records and an authenticated deletion workflow before sustained usage. Public-document source fetches do not send browser cookies or authorization headers.
 
-Full AI access is an account-level prerequisite. No credentials were borrowed from unrelated projects, no payment checks were bypassed, and no provider registrations or review requests were submitted automatically.
+The direct OpenAI credential stays in an ignored local environment and sensitive production environment variable. Model calls execute on the server; synthesis and review have no tools. No credentials are borrowed from unrelated projects and no provider registrations or review requests are submitted automatically.
 
 Run `npm test`, `npm run typecheck`, and `npm audit --omit=dev` before release. A targeted same-major dependency override removes a vulnerable nested Zod dependency in the Blob tooling chain.
