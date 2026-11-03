@@ -97,6 +97,32 @@ describe("research source boundaries", () => {
     expect(result.approval).toContain("does not require Marketplace listing");
     expect(result.approval).toContain("administrator");
   });
+  it("does not impose embedded Web SDK App URL settings on a REST-only integration", () => {
+    const guide = draft();
+    guide.domain = "miro.com";
+    guide.steps[0]!.title = "Update Miro App Settings With Production URL";
+    guide.steps[0]!.description = "Set your app's public URL and save.";
+    const result = applyLaunchSafeguards(
+      guide,
+      [
+        {
+          source: {
+            id: "source-1",
+            title: "Manifest",
+            url: "https://developers.miro.com/docs/app-manifest",
+          },
+          text: "sdkUri is Required only for apps that use the Web SDK.",
+        },
+      ],
+      "oauth2",
+      "public",
+      "Read board items",
+    );
+    expect(result.steps[0]?.description).toContain("REST integration");
+    expect(result.steps[0]?.description).toContain(
+      "App URL (sdkUri) is required only",
+    );
+  });
   it("accepts supplied provider URLs without assuming search index coverage", () => {
     expect(
       suppliedDocumentationUrl(

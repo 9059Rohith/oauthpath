@@ -63,8 +63,8 @@ const providerDocuments: Record<string, { title: string; url: string }[]> = {
     },
     {
       title:
-        "Miro app sharing and Marketplace submission changes (maintained entry point)",
-      url: "https://developers.miro.com/changelog/updated-submission-process-for-the-miro-marketplace",
+        "Miro REST OAuth versus Web SDK app configuration (maintained entry point)",
+      url: "https://developers.miro.com/docs/app-manifest",
     },
     {
       title:
@@ -518,6 +518,7 @@ export function applyLaunchSafeguards(
   pages: { source: Source; text: string }[],
   protocol: "oauth2" | "oauth1" | "unknown" = "oauth2",
   audience: ResearchOptions["audience"] = "public",
+  capability = "",
 ): Guide {
   const result = structuredClone(guide);
   const stateSource =
@@ -729,6 +730,72 @@ export function applyLaunchSafeguards(
     }
   }
   if (result.domain === "miro.com") {
+    const manifest = pages.find(
+      (page) =>
+        page.source.url.includes("/docs/app-manifest") &&
+        /sdkUri/i.test(page.text) &&
+        /Web SDK/i.test(page.text) &&
+        /Required only/i.test(page.text),
+    );
+    if (
+      manifest &&
+      !/web.?sdk|embedded|board ui|sidebar|panel/i.test(capability)
+    ) {
+      const refs = [manifest.source.id];
+      result.steps = result.steps.map((step) => {
+        if (
+          /update.*app.settings.*url|set.*app.url/i.test(step.title) ||
+          /set (your |the )?app.?s? (public|production) url|app url|sdkUri/i.test(
+            step.description,
+          )
+        )
+          return {
+            ...step,
+            title: "Configure the REST OAuth callback; App URL is conditional",
+            description:
+              "For this server-side REST integration, register the OAuth callback in redirectUris and use that same redirect URI during authorization and code exchange. App URL (sdkUri) is required only for a Web SDK app with an embedded UI; do not add it as a REST-only prerequisite.",
+            doneWhen:
+              "The deployed callback exactly matches its registered redirect URI. An App URL is configured only if an embedded Web SDK UI is actually part of the product.",
+            ifBlocked:
+              "Check redirectUris rather than treating the Web SDK's sdkUri/App URL as the OAuth callback. Confirm which app surface you are building.",
+            sourceIds: [...new Set([...step.sourceIds, ...refs])],
+          };
+        if (/deploy/i.test(step.title))
+          return {
+            ...step,
+            title: "Deploy the server-side OAuth callback",
+            description:
+              "Host your server-side OAuth callback on the production backend. Configure its exact redirect URI and keep app secrets and user tokens on the server. An embedded Miro Web SDK interface is optional for this REST-only scenario.",
+            sourceIds: [...new Set([...step.sourceIds, ...refs])],
+          };
+        return step;
+      });
+      result.blockers = result.blockers.map((blocker) =>
+        /app.url|public.url|sdkUri/i.test(
+          `${blocker.title} ${blocker.description}`,
+        )
+          ? {
+              title:
+                "OAuth callback configuration differs from Web SDK app settings",
+              description:
+                "REST OAuth uses redirectUris. The App URL/sdkUri setting is specific to an embedded Web SDK app.",
+              action:
+                "Match the deployed callback to its registered redirect URI. Configure sdkUri only if you also build the Web SDK interface.",
+              sourceIds: refs,
+            }
+          : blocker,
+      );
+      result.requirements = result.requirements.map((claim) =>
+        /deploy.*(app|production)|app.url|sdkUri/i.test(claim.text)
+          ? {
+              text: "REST OAuth uses registered redirectUris. App URL (sdkUri) is required only for apps that use the Web SDK; an embedded UI is not a prerequisite for this REST-only integration.",
+              evidence: "documented" as const,
+              sourceIds: refs,
+              quote: "apps that use the Web SDK",
+            }
+          : claim,
+      );
+    }
     const sharing = pages.find(
       (page) =>
         /deploy-a-miro-app|updated-submission-process-for-the-miro-marketplace/.test(
@@ -1200,6 +1267,7 @@ export async function research(
           pages,
           discovery.protocol,
           options?.audience,
+          options?.capability,
         ),
       ),
       pages,
