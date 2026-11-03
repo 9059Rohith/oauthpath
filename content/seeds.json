@@ -6,12 +6,12 @@
     "domain": "github.com",
     "category": "Developer tools",
     "color": "#d4d9e2",
-    "summary": "Self-serve registration. Decide whether an OAuth App or a fine-grained GitHub App fits before you build.",
+    "summary": "Register a user-authorized OAuth App. If you need fine-grained repository permissions or app-owned automation, use the separate GitHub App setup path instead.",
     "difficulty": "Straightforward",
     "effort": "1–3 hours · planning estimate for a first test connection",
     "wait": "No registration review described; organization approval can add an unknown wait",
     "approval": "Organization access may need owner approval",
-    "scenario": "User-authorized GitHub.com integration; organization policies still apply",
+    "scenario": "GitHub.com OAuth App using user-delegated authorization; these registration steps do not create a GitHub App. Organization policies still apply.",
     "sources": [
       {
         "id": "registration",
@@ -27,6 +27,11 @@
         "id": "org",
         "title": "Organization OAuth restrictions",
         "url": "https://docs.github.com/en/organizations/managing-oauth-access-to-your-organizations-data/about-oauth-app-access-restrictions"
+      },
+      {
+        "id": "github-app-alternative",
+        "title": "Separate GitHub App setup path",
+        "url": "https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps/about-creating-github-apps"
       }
     ],
     "requirements": [
@@ -55,19 +60,20 @@
     "steps": [
       {
         "id": "choose",
-        "title": "Choose the app model",
-        "description": "Prefer a GitHub App when repository-level permissions or app-owned automation are needed.",
+        "title": "Confirm the OAuth App path fits",
+        "description": "This checklist creates an OAuth App acting for an authorizing user. If you need fine-grained repository permissions or app-owned automation, follow the separate GitHub App setup source below; its registration, permissions and installation flow differ. Continue here only after choosing an OAuth App.",
         "owner": "Together",
-        "doneWhen": "App model recorded with rationale.",
-        "ifBlocked": "Revisit which resources the agent needs.",
+        "doneWhen": "OAuth App is the chosen model, or work has moved to the separate GitHub App guide.",
+        "ifBlocked": "Compare the required resources and actor with GitHub's app-type guidance before creating credentials.",
         "sourceIds": [
-          "registration"
+          "registration",
+          "github-app-alternative"
         ]
       },
       {
         "id": "register",
-        "title": "Register the application",
-        "description": "Open Settings → Developer settings → OAuth apps → New OAuth App. Enter your app details.",
+        "title": "Register an OAuth App",
+        "description": "For the OAuth App path only, open Settings → Developer settings → OAuth apps → New OAuth App. Enter the application name, homepage and callback. This menu does not register a GitHub App.",
         "owner": "You",
         "doneWhen": "Client ID appears in your app settings.",
         "ifBlocked": "Check ownership permissions.",
@@ -90,7 +96,7 @@
       {
         "id": "implement",
         "title": "Implement authorization",
-        "description": "Use the authorization-code flow with state and S256 PKCE; exchange the code on your backend.",
+        "description": "Use authorization-code flow with unpredictable session-bound state and S256 PKCE. Reject a missing or mismatched returned state before exchanging the code on your backend; consume state after use. Preserve the matching PKCE verifier for that exchange.",
         "owner": "Agent",
         "doneWhen": "A consenting test user completes the callback.",
         "ifBlocked": "Inspect the provider error without logging tokens.",
@@ -598,6 +604,21 @@
         "id": "consent",
         "title": "Configure consent and scopes",
         "url": "https://developers.google.com/workspace/guides/configure-oauth-consent"
+      },
+      {
+        "id": "client",
+        "title": "Create Google OAuth client credentials",
+        "url": "https://developers.google.com/workspace/guides/create-credentials"
+      },
+      {
+        "id": "oauth",
+        "title": "Google server-side OAuth and callback security",
+        "url": "https://developers.google.com/identity/protocols/oauth2/web-server"
+      },
+      {
+        "id": "profile",
+        "title": "Verify a Gmail connection with users.getProfile",
+        "url": "https://developers.google.com/workspace/gmail/api/reference/rest/v1/users/getProfile"
       }
     ],
     "requirements": [
@@ -638,23 +659,69 @@
       {
         "id": "project",
         "title": "Configure the project",
-        "description": "Set up Google Auth platform branding, audience and data access for your environment.",
+        "description": "Select the intended Cloud project, enable the Gmail API, and configure Google Auth platform branding, audience and data access for your environment.",
         "owner": "You",
         "doneWhen": "Consent configuration matches the product.",
         "ifBlocked": "Check account and project permissions.",
+        "sourceIds": [
+          "consent",
+          "oauth"
+        ]
+      },
+      {
+        "id": "client",
+        "title": "Create the web OAuth client and callback",
+        "description": "Open Google Auth platform → Clients → Create Client. Choose Web application, name the client and add your backend callback under Authorized redirect URIs. Review the optional AI-agent client setting before creation; the documentation says that setting cannot later change. Save the client ID and any issued credentials securely.",
+        "owner": "You",
+        "doneWhen": "The client exists in the intended project and its registered callback matches the backend configuration.",
+        "ifBlocked": "Check project access and client type. Follow the current Clients documentation rather than creating an API key for user-data access.",
+        "sourceIds": [
+          "client"
+        ]
+      },
+      {
+        "id": "test",
+        "title": "Configure the external test audience",
+        "description": "While using External / Testing, add the intended test account in the audience configuration. This prepares eligibility; it does not itself run consent or verify the integration.",
+        "owner": "You",
+        "doneWhen": "The intended account is configured as a test user.",
+        "ifBlocked": "Check audience and test-user configuration.",
         "sourceIds": [
           "consent"
         ]
       },
       {
-        "id": "test",
-        "title": "Add test users",
-        "description": "For external testing, configure eligible testers and test the requested permissions.",
-        "owner": "Together",
-        "doneWhen": "An intended tester completes consent.",
-        "ifBlocked": "Check audience and test-user configuration.",
+        "id": "callback-security",
+        "title": "Implement authorization and validate the callback",
+        "description": "Use a server-side Google OAuth library with the registered callback and chosen scopes. Generate unpredictable state tied to the initiating session. Reject errors, missing or mismatched state before code exchange; consume state after use.",
+        "owner": "Agent",
+        "doneWhen": "A valid callback passes validation; altered or missing state is rejected before any token request.",
+        "ifBlocked": "Restart authorization in the original session; do not bypass state validation.",
         "sourceIds": [
-          "consent"
+          "oauth"
+        ]
+      },
+      {
+        "id": "token-exchange",
+        "title": "Exchange the accepted code and handle renewal",
+        "description": "Exchange the validated code through the server-side library and store returned tokens securely. Request access_type=offline for background access; handle absent or revoked refresh tokens rather than assuming one always arrives.",
+        "owner": "Agent",
+        "doneWhen": "The server receives usable credentials and handles reconnect or refresh without exposing tokens.",
+        "ifBlocked": "Check the callback and client configuration; restart consent for an expired code.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "test-connection",
+        "title": "Run a non-destructive Gmail connection test",
+        "description": "Have the configured tester consent, then call GET https://gmail.googleapis.com/gmail/v1/users/me/profile using the authorized access token. For this mailbox-read scenario, gmail.readonly is among the accepted scopes. Check the intended test identity without logging tokens or mailbox content.",
+        "owner": "Together",
+        "doneWhen": "The authorized test account's profile is returned. This proves that test operation, not production approval or every planned feature.",
+        "ifBlocked": "Inspect the granted scope and test account. A send-only grant does not authorize this profile method; use a test appropriate to that different scenario.",
+        "sourceIds": [
+          "profile",
+          "scopes"
         ]
       },
       {

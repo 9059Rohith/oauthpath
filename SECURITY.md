@@ -2,7 +2,7 @@
 
 ## Boundaries
 
-The main exposed input is an app name or public URL. Generation consumes external documents and, when available, model output. Both are untrusted. There are no OAuth credential collection fields and no write-capable provider tools.
+The main exposed input is an app name or public URL, with an optional bounded public capability description and audience enum. Generation consumes external documents and, when available, model output. Both are untrusted. There are no OAuth credential collection fields and no write-capable provider tools.
 
 | Threat | Implemented mitigation | Remaining limitation |
 |---|---|---|
@@ -29,3 +29,5 @@ Quota reservation fails closed if storage is unavailable. Immutable slot writes 
 The direct OpenAI credential stays in an ignored local environment and sensitive production environment variable. Model calls execute on the server; synthesis and review have no tools. No credentials are borrowed from unrelated projects and no provider registrations or review requests are submitted automatically.
 
 Run `npm test`, `npm run typecheck`, and `npm audit --omit=dev` before release. A targeted same-major dependency override removes a vulnerable nested Zod dependency in the Blob tooling chain.
+
+The browser stream decoder bounds buffered frames and events, validates link and slug syntax, rejects malformed payloads, and requires terminal completion. An interrupted response cannot silently become a ready guide. Direct user-supplied source URLs are candidates only: confirmed provider ownership, public-network validation and fresh retrieval still apply. Trello's parent-company documentation relationship is restricted to its product path rather than all Atlassian content.

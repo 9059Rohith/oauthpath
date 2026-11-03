@@ -93,6 +93,7 @@ function SourceLinks({ ids, sources }: { ids: string[]; sources: Source[] }) {
 
 export function GuideDetail({ guide }: { guide: Guide }) {
   const [notice, setNotice] = useState("");
+  const [handoffFallback, setHandoffFallback] = useState("");
   const storageKey = `oauthpath:steps:${guide.slug}:${guide.updatedAt}:${guide.generation?.promptVersion ?? "curated-v1"}`;
   const subscribe = useCallback(
     (notify: () => void) => {
@@ -132,25 +133,116 @@ export function GuideDetail({ guide }: { guide: Guide }) {
   }, [checklistSnapshot]);
   const documentScan = guide.generation?.mode === "document-scan";
   const sourceIds = guide.sources.map((source) => source.id);
-  const firstStep = guide.steps[0];
+  const nextStepIndex = guide.steps.findIndex(
+    (step) => !completed.includes(step.id),
+  );
+  const nextStep = guide.steps[nextStepIndex];
+  const remainingSteps = guide.steps.filter(
+    (step) => !completed.includes(step.id),
+  );
   const completedCount = guide.steps.filter((step) =>
     completed.includes(step.id),
   ).length;
+
+  function saveChecklist(next: string[]): boolean {
+    const serialized = JSON.stringify(next);
+    checklistMemory.set(storageKey, serialized);
+    let saved = true;
+    try {
+      window.localStorage.setItem(storageKey, serialized);
+    } catch {
+      saved = false;
+    }
+    window.dispatchEvent(new Event(checklistEvent));
+    return saved;
+  }
 
   function toggleStep(id: string) {
     const next = completed.includes(id)
       ? completed.filter((item) => item !== id)
       : [...completed, id];
-    const serialized = JSON.stringify(next);
-    checklistMemory.set(storageKey, serialized);
-    try {
-      window.localStorage.setItem(storageKey, serialized);
-    } catch {
+    setHandoffFallback("");
+    if (!saveChecklist(next))
       setNotice(
         "Checklist updated for this visit. Your browser could not save it.",
       );
+  }
+
+  function resetChecklist() {
+    setHandoffFallback("");
+    const saved = saveChecklist([]);
+    setNotice(
+      saved
+        ? "Your local checklist was reset. Guide content and provider approval status are unchanged."
+        : "Checklist reset for this visit. Your browser could not save the change.",
+    );
+  }
+
+  function openStep(id: string) {
+    const element = document.getElementById(`step-${encodeURIComponent(id)}`);
+    if (!(element instanceof HTMLDetailsElement)) return;
+    element.open = true;
+    element.querySelector("summary")?.focus({ preventScroll: true });
+    element.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
+  }
+
+  const handoffPreview = [
+    `${guide.name} — OAuth setup handoff`,
+    `Scenario: ${guide.scenario}`,
+    `Local checklist: ${completedCount} of ${guide.steps.length} steps checked.`,
+    "Checklist completion is self-reported and does not establish provider approval.",
+    "",
+    "REMAINING STEPS",
+    ...(remainingSteps.length
+      ? remainingSteps.map((step) => {
+          const number =
+            guide.steps.findIndex((item) => item.id === step.id) + 1;
+          return `${number}. ${step.title} | Owner: ${step.owner}\n   Done when: ${step.doneWhen}\n   If blocked: ${step.ifBlocked}`;
+        })
+      : [
+          guide.steps.length
+            ? "All listed steps are checked. Confirm any outstanding provider approval separately."
+            : "No setup steps are confirmed in this guide.",
+        ]),
+    "",
+    "HUMAN HANDOFFS TO CONFIRM",
+    ...guide.humanMust.map((task) => `- ${task}`),
+    "",
+    "TECHNICAL DECISIONS TO CONFIRM",
+    ...guide.technical.map((item) => `- ${item.label}: ${item.value}`),
+    "",
+    "BLOCKER RECOVERY",
+    ...guide.blockers.map((item) => `- ${item.title}: ${item.action}`),
+    "",
+    "UNRESOLVED QUESTIONS",
+    ...guide.uncertainties.map((item) => `- ${item}`),
+    "",
+    "SUPPORTING SOURCES",
+    ...guide.sources.map((source) => `- ${source.title}: ${source.url}`),
+    "",
+    "Open the guide for supporting sources and unresolved questions.",
+  ].join("\n");
+
+  async function copyHandoff() {
+    const url = `${window.location.origin}/guide/${encodeURIComponent(guide.slug)}`;
+    const text = `${handoffPreview}\nGuide: ${url}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setHandoffFallback("");
+      setNotice(
+        `Handoff copied with ${remainingSteps.length} remaining ${remainingSteps.length === 1 ? "step" : "steps"}, human handoffs and the guide link.`,
+      );
+    } catch {
+      setHandoffFallback(text);
+      setNotice(
+        "Clipboard access is unavailable. Select and copy the handoff text below the copy button.",
+      );
     }
-    window.dispatchEvent(new Event(checklistEvent));
   }
 
   async function shareGuide() {
@@ -225,6 +317,14 @@ export function GuideDetail({ guide }: { guide: Guide }) {
             Saved on this device. Checking a step is your confirmation, not
             provider approval.
           </p>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={resetChecklist}
+            disabled={completedCount === 0}
+          >
+            Reset checklist
+          </button>
         </div>
       </aside>
 
@@ -265,6 +365,13 @@ export function GuideDetail({ guide }: { guide: Guide }) {
             </p>
           )}
           <p className="guide-summary">{guide.summary}</p>
+          <p className="muted ownership-guide-note">
+            This guide covers your own provider app.{" "}
+            <a className="text-link" href="/start">
+              Check whether managed OAuth fits first{" "}
+              <ArrowUpRight size={13} aria-hidden="true" />
+            </a>
+          </p>
           <p className="muted">
             <strong>For this scenario:</strong> {guide.scenario}
           </p>
@@ -326,17 +433,96 @@ export function GuideDetail({ guide }: { guide: Guide }) {
               <SourceLinks ids={sourceIds} sources={guide.sources} />
             </div>
           </div>
-          {firstStep && (
-            <div className="callout next-action">
-              <span className="eyebrow">Start here</span>
-              <h3>{firstStep.title}</h3>
-              <p>{firstStep.description}</p>
-              <SourceLinks ids={firstStep.sourceIds} sources={guide.sources} />
-              <a
-                className="btn btn-primary"
-                href={`#step-${encodeURIComponent(firstStep.id)}`}
+          {guide.steps.length > 0 && (
+            <nav
+              aria-label="Checklist stages"
+              className="guide-stage-nav"
+              style={{ marginBlock: "24px" }}
+            >
+              <ol
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                  listStyle: "none",
+                  padding: 0,
+                  margin: 0,
+                }}
               >
-                Open the first step{" "}
+                {guide.steps.map((step, index) => {
+                  const checked = completed.includes(step.id);
+                  const current = index === nextStepIndex;
+                  return (
+                    <li key={step.id}>
+                      <button
+                        type="button"
+                        className={`btn ${current ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => openStep(step.id)}
+                        aria-current={current ? "step" : undefined}
+                        aria-label={`Step ${index + 1}: ${step.title}. ${checked ? "Complete" : current ? "Current next step" : "Not completed"}`}
+                        title={step.title}
+                        style={{ fontSize: "12px", padding: "8px 12px" }}
+                      >
+                        {checked ? (
+                          <Check size={13} aria-hidden="true" />
+                        ) : (
+                          <span aria-hidden="true">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                        )}
+                        <span>{step.title}</span>
+                        <span className="sr-only">
+                          {checked
+                            ? "Complete"
+                            : current
+                              ? "Current next step"
+                              : "Not completed"}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
+          )}
+          {nextStep ? (
+            <div className="callout next-action">
+              <span className="eyebrow">
+                {completedCount === 0 ? "Start here" : "Your next action"}
+              </span>
+              <p className="muted">
+                Step {nextStepIndex + 1} of {guide.steps.length} · Owner:{" "}
+                {nextStep.owner} · {remainingSteps.length} remaining
+              </p>
+              <h3>{nextStep.title}</h3>
+              <p>{nextStep.description}</p>
+              <SourceLinks ids={nextStep.sourceIds} sources={guide.sources} />
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => openStep(nextStep.id)}
+              >
+                {nextStepIndex === 0
+                  ? "Open the first step"
+                  : `Continue to step ${nextStepIndex + 1}`}{" "}
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <div className="callout next-action">
+              <CheckCircle2 size={22} aria-hidden="true" />
+              <h3>
+                {guide.steps.length
+                  ? "Your checklist is complete."
+                  : "No setup steps confirmed yet."}
+              </h3>
+              <p>
+                {guide.steps.length
+                  ? "You have checked every listed step. This is your local progress record, not confirmation of authenticated setup or provider approval. Confirm the applicable approval status in the provider console before launch."
+                  : "Review the sources and unresolved questions before treating this app as ready to configure."}
+              </p>
+              <a className="btn btn-ghost" href="#evidence">
+                Review the evidence{" "}
                 <ArrowUpRight size={16} aria-hidden="true" />
               </a>
             </div>
@@ -510,6 +696,61 @@ export function GuideDetail({ guide }: { guide: Guide }) {
               </ul>
             </div>
           </div>
+          <details
+            className="step-card handoff-builder"
+            style={{ marginTop: "24px" }}
+          >
+            <summary className="step-header">
+              <Clipboard size={17} aria-hidden="true" />
+              <span className="step-title">Prepare my handoff</span>
+              <ChevronDown size={16} aria-hidden="true" />
+            </summary>
+            <div className="step-body">
+              <p className="muted">
+                Share your remaining checklist, task owners, human handoffs and
+                this guide. No account credentials are requested or included.
+              </p>
+              <pre
+                style={{
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "anywhere",
+                  fontFamily: "inherit",
+                  fontSize: "13px",
+                  lineHeight: 1.7,
+                }}
+              >
+                {handoffPreview}
+              </pre>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={copyHandoff}
+              >
+                <Clipboard size={15} aria-hidden="true" /> Copy handoff
+              </button>
+              {handoffFallback && (
+                <label style={{ display: "block", marginTop: "16px" }}>
+                  Copy handoff text manually
+                  <textarea
+                    readOnly
+                    value={handoffFallback}
+                    onFocus={(event) => event.currentTarget.select()}
+                    rows={12}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      marginTop: "8px",
+                      padding: "12px",
+                      background: "var(--surface)",
+                      color: "var(--text)",
+                      border: "1px solid var(--line)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          </details>
         </section>
 
         <section

@@ -52,6 +52,93 @@ test("library difficulty and name filters change the results", async ({
   ).toHaveAttribute("href", /MissingProvider/u);
 });
 
+test("ownership planner explains managed registration and routes custom apps", async ({
+  page,
+}) => {
+  await page.goto("/start");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "register an app",
+  );
+  await expect(
+    page.getByRole("heading", {
+      name: "One app registration. Many user connections.",
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("radio", { name: /Get users connected quickly/ })
+    .check();
+  await expect(
+    page.getByRole("heading", { name: "Check managed availability first." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Check the managed directory" }),
+  ).toHaveAttribute("href", "https://docs.composio.dev/toolkits/managed-auth");
+  await expect(
+    page.getByText(
+      "Availability has not been checked for your provider here.",
+      { exact: false },
+    ),
+  ).toBeVisible();
+  await page.getByRole("radio", { name: /Use my own OAuth app/ }).check();
+  await page.getByRole("link", { name: "Find my provider" }).click();
+  await expect(page).toHaveURL(/\/library$/);
+});
+
+test("next action advances, opens closed steps, and resets locally", async ({
+  page,
+}) => {
+  await page.goto("/guide/github");
+  await page.locator(".step-card").first().getByRole("checkbox").check();
+  const next = page.getByRole("button", {
+    name: "Continue to step 2",
+    exact: true,
+  });
+  await expect(next).toBeVisible();
+  await expect(page.locator(".step-card").nth(1)).not.toHaveAttribute("open");
+  await next.click();
+  await expect(page.locator(".step-card").nth(1)).toHaveAttribute("open", "");
+  await expect(
+    page.locator(".step-card").nth(1).locator("summary"),
+  ).toBeFocused();
+  await page.reload();
+  await expect(next).toBeVisible();
+  await page
+    .getByRole("button", { name: "Reset checklist", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Open the first step", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".step-card").first().getByRole("checkbox"),
+  ).not.toBeChecked();
+});
+
+test("handoff copies remaining work and completion never claims approval", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/guide/github");
+  await page.getByText("Prepare my handoff", { exact: true }).click();
+  await page.getByRole("button", { name: "Copy handoff", exact: true }).click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("REMAINING STEPS");
+  expect(copied).toContain("HUMAN HANDOFFS TO CONFIRM");
+  expect(copied).toContain("/guide/github");
+  for (const step of await page.locator("#steps .step-card").all()) {
+    await step.evaluate((node) => {
+      (node as HTMLDetailsElement).open = true;
+    });
+    await step.getByRole("checkbox").check();
+  }
+  await expect(
+    page.getByRole("heading", { name: "Your checklist is complete." }),
+  ).toBeVisible();
+  await expect(page.locator(".next-action")).toContainText(
+    "not confirmation of authenticated setup or provider approval",
+  );
+});
+
 test("guide completion persists through a reload", async ({ page }) => {
   await page.goto("/guide/github");
   const checkbox = page
@@ -118,6 +205,7 @@ test("390px pages fit the viewport without horizontal scrolling", async ({
     "/guide/github",
     "/generate",
     "/methodology",
+    "/start",
   ]) {
     await test.step(path, async () => {
       await page.goto(path);
@@ -157,7 +245,7 @@ test("reduced-motion mode keeps the full hero and search visible", async ({
   await expect(page.locator(".hero-art")).toHaveCSS("transform", "none");
 });
 
-for (const path of ["/", "/library", "/guide/github", "/generate"]) {
+for (const path of ["/", "/library", "/guide/github", "/generate", "/start"]) {
   test(`accessibility: no serious or critical violations on ${path}`, async ({
     page,
   }) => {

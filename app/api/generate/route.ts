@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { generationInputSchema } from "@/lib/agent/input";
 import { findSeed } from "@/lib/guides";
 import { research } from "@/lib/agent/research";
 import { reserveGeneration, saveGuide } from "@/lib/store";
@@ -6,18 +6,6 @@ import { validatePublicUrl } from "@/lib/security/safe-fetch";
 import { readBoundedBody } from "@/lib/security/request";
 export const runtime = "nodejs";
 export const maxDuration = 180;
-const inputSchema = z.object({
-  query: z
-    .string()
-    .trim()
-    .min(2)
-    .max(180)
-    .refine(
-      (s) => !/[\x00-\x1f<>]/.test(s),
-      "Enter an app name or public website.",
-    ),
-  refresh: z.boolean().optional(),
-});
 export async function POST(request: Request) {
   if (
     request.headers.get("origin") &&
@@ -35,7 +23,7 @@ export async function POST(request: Request) {
   }
   let body;
   try {
-    body = inputSchema.parse(JSON.parse(text));
+    body = generationInputSchema.parse(JSON.parse(text));
     if (/^https?:|\.[a-z]{2,}(\/|$)/i.test(body.query))
       validatePublicUrl(
         body.query.startsWith("http") ? body.query : `https://${body.query}`,
@@ -50,7 +38,7 @@ export async function POST(request: Request) {
     );
   }
   const cached = findSeed(body.query);
-  if (cached && !body.refresh)
+  if (cached && !body.refresh && body.audience === "public" && !body.capability)
     return Response.json({ slug: cached.slug, cached: true });
   try {
     await reserveGeneration(
@@ -94,6 +82,7 @@ export async function POST(request: Request) {
           body.query,
           (data) => send("progress", data),
           abort.signal,
+          { audience: body.audience, capability: body.capability },
         );
         abort.signal.throwIfAborted();
         send("progress", {
@@ -111,11 +100,13 @@ export async function POST(request: Request) {
               ? "No usable official OAuth sources were found. Try a direct provider documentation URL."
               : message === "SOURCE_UNAVAILABLE"
                 ? "The provider’s public documentation did not respond. Try a direct documentation URL."
-                : message === "CITATION_FAILED"
-                  ? "The draft did not pass citation checks. No unverified guide was published. Please retry."
-                  : abort.signal.aborted
-                    ? "Research timed out. Try a direct OAuth documentation URL for a narrower scan."
-                    : "Research could not finish. Try a direct documentation URL, or open an existing guide.";
+                : message === "UNSUPPORTED_AUTH"
+                  ? "We could not confirm an OAuth integration for this provider. Check its documented authentication methods or try the specific product's developer URL. No OAuth guide was invented."
+                  : message === "CITATION_FAILED"
+                    ? "The draft did not pass citation checks. No unverified guide was published. Please retry."
+                    : abort.signal.aborted
+                      ? "Research timed out. Try a direct OAuth documentation URL for a narrower scan."
+                      : "Research could not finish. Try a direct documentation URL, or open an existing guide.";
         send("error", { message: safe });
       } finally {
         clearInterval(heartbeat);

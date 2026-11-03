@@ -23,6 +23,8 @@ import {
   registeredProviderDocuments,
   removeUncitedClaims,
   research,
+  suppliedDocumentationUrl,
+  qualifyEvidenceAbsence,
 } from "../lib/agent/research";
 
 const officialUrl = "https://docs.github.com/en/apps/oauth-apps";
@@ -49,7 +51,10 @@ function discovery(url = officialUrl) {
       name: "GitHub",
       domain: "github.com",
       identity: "confirmed",
-      documents: [{ title: "Official OAuth documentation", url }],
+      protocol: "oauth2",
+      documents: [
+        { title: "Official OAuth and production review documentation", url },
+      ],
     },
     sources: [{ sourceType: "url", url: `${officialUrl}?utm_source=openai` }],
     steps: [{ toolResults: [{ toolName: "web_search" }] }],
@@ -68,6 +73,130 @@ beforeEach(() => {
 });
 
 describe("research source boundaries", () => {
+  it("bounds claims about missing documentation to the sources actually inspected", () => {
+    expect(qualifyEvidenceAbsence("Admin rules are not documented.")).toBe(
+      "Admin rules were not established by the retrieved sources.",
+    );
+    expect(qualifyEvidenceAbsence("Review is not documented.")).toContain(
+      "retrieved sources",
+    );
+  });
+  it("qualifies Miro direct sharing without promising customer-admin exemptions", () => {
+    const guide = draft();
+    guide.domain = "miro.com";
+    const result = applyLaunchSafeguards(guide, [
+      {
+        source: {
+          id: "source-1",
+          title: "Deploy",
+          url: "https://developers.miro.com/docs/deploy-a-miro-app",
+        },
+        text: "Share your installation URL with users.",
+      },
+    ]);
+    expect(result.approval).toContain("does not require Marketplace listing");
+    expect(result.approval).toContain("administrator");
+  });
+  it("accepts supplied provider URLs without assuming search index coverage", () => {
+    expect(
+      suppliedDocumentationUrl(
+        "https://linear.app/developers/new-oauth-page",
+        "linear.app",
+      ),
+    ).toBe("https://linear.app/developers/new-oauth-page");
+    expect(
+      suppliedDocumentationUrl("linear.app/developers/oauth", "linear.app"),
+    ).toBe("https://linear.app/developers/oauth");
+    expect(
+      suppliedDocumentationUrl(
+        "https://linear.app.evil.com/oauth",
+        "linear.app",
+      ),
+    ).toBeNull();
+    expect(
+      suppliedDocumentationUrl("https://127.0.0.1/oauth", "127.0.0.1"),
+    ).toBeNull();
+  });
+  it("limits the parent-company documentation relationship to Trello's path", () => {
+    expect(
+      isOfficialDocumentationUrl(
+        "https://developer.atlassian.com/cloud/trello/guides/rest-api/authorization/",
+        "trello.com",
+      ),
+    ).toBe(true);
+    expect(
+      isOfficialDocumentationUrl(
+        "https://developer.atlassian.com/cloud/jira/oauth",
+        "trello.com",
+      ),
+    ).toBe(false);
+    expect(
+      isOfficialDocumentationUrl(
+        "https://developer.atlassian.com.attacker.com/cloud/trello/oauth",
+        "trello.com",
+      ),
+    ).toBe(false);
+  });
+  it("does not force OAuth 2 callback semantics onto OAuth 1", () => {
+    const result = applyLaunchSafeguards(
+      draft(),
+      [
+        {
+          source: { id: "source-1", title: "OAuth 1", url: officialUrl },
+          text: "OAuth 1 uses signed requests.",
+        },
+      ],
+      "oauth1",
+    );
+    expect(
+      result.steps.some(
+        (step) => step.id === "security-validate-callback-state",
+      ),
+    ).toBe(false);
+  });
+  it("does not add code-exchange security when the retrieved OAuth 2 flow is not code-based", () => {
+    const result = applyLaunchSafeguards(
+      draft(),
+      [
+        {
+          source: { id: "source-1", title: "OAuth", url: officialUrl },
+          text: "Device authorization uses a device code.",
+        },
+      ],
+      "oauth2",
+    );
+    expect(
+      result.steps.some(
+        (step) => step.id === "security-validate-callback-state",
+      ),
+    ).toBe(false);
+  });
+  it("does not overwrite internal Linear guidance with mandatory public distribution", () => {
+    const guide = draft();
+    guide.domain = "linear.app";
+    guide.summary = "Configure an internal application.";
+    const result = applyLaunchSafeguards(
+      guide,
+      [
+        {
+          source: {
+            id: "source-1",
+            title: "Manifests",
+            url: "https://linear.app/developers/oauth-app-manifests",
+          },
+          text: "distribution private public installable",
+        },
+      ],
+      "oauth2",
+      "internal",
+    );
+    expect(result.summary).toBe(guide.summary);
+    expect(
+      result.requirements.some((claim) =>
+        claim.text.includes("configure public distribution"),
+      ),
+    ).toBe(false);
+  });
   it("uses maintained official entry points only for exact provider identities", () => {
     expect(
       registeredProviderDocuments("dropbox.com").map((doc) => doc.url),
@@ -265,20 +394,114 @@ describe("research source boundaries", () => {
   });
   it("provides actionable state validation before token exchange", () => {
     const guide = draft();
-    guide.steps[0]!.description = "Exchange the authorization code.";
+    guide.steps[0]!.title = "Exchange the authorization code";
     const result = applyLaunchSafeguards(guide, [
       {
         source: { id: "source-1", title: "OAuth", url: officialUrl },
-        text: "Use state for CSRF protection.",
+        text: "Use state for CSRF protection in the authorization code flow.",
       },
     ]);
     expect(result.steps[0]?.id).toBe("security-validate-callback-state");
     expect(result.steps[0]?.description).toContain("BEFORE exchanging");
     expect(result.steps[0]?.doneWhen).toContain("replayed state is rejected");
   });
+  it("keeps app registration ahead of callback implementation security", () => {
+    const guide = draft();
+    guide.steps = [
+      {
+        ...guide.steps[0]!,
+        id: "register",
+        title: "Register an app",
+        description: "Get credentials for the authorization code flow.",
+      },
+      {
+        ...guide.steps[1]!,
+        id: "exchange",
+        title: "Handle callback and exchange code",
+      },
+    ];
+    const result = applyLaunchSafeguards(guide, [
+      {
+        source: { id: "source-1", title: "OAuth", url: officialUrl },
+        text: "Authorization code flow uses state.",
+      },
+    ]);
+    expect(result.steps.map((step) => step.id)).toEqual([
+      "register",
+      "security-validate-callback-state",
+      "exchange",
+    ]);
+  });
+  it("places callback and a scoped test before distributing the app when a draft omits implementation", () => {
+    const guide = draft();
+    guide.steps = [
+      { ...guide.steps[0]!, id: "register", title: "Register an app" },
+      { ...guide.steps[1]!, id: "share", title: "Share installation link" },
+    ];
+    const result = applyLaunchSafeguards(guide, [
+      {
+        source: { id: "source-1", title: "OAuth", url: officialUrl },
+        text: "Authorization code flow uses state.",
+      },
+    ]);
+    expect(result.steps.map((step) => step.id)).toEqual([
+      "register",
+      "security-validate-callback-state",
+      "share",
+    ]);
+    expect(result.steps[1]?.description).toContain(
+      "Exchange a valid code server-side",
+    );
+    expect(result.steps[1]?.doneWhen).toContain(
+      "scoped read-only API test succeeds",
+    );
+  });
 });
 
 describe("bounded research orchestration (mocked model and network)", () => {
+  it("searches a missing launch path separately and rejects unrelated results", async () => {
+    const found = discovery();
+    found.output.documents[0]!.title = "OAuth setup";
+    const launchUrl = "https://docs.github.com/en/apps/oauth-apps/publishing";
+    mocks.generateText
+      .mockResolvedValueOnce(found)
+      .mockResolvedValueOnce({
+        output: {
+          documents: [
+            { title: "Sharing and review", url: launchUrl },
+            {
+              title: "Fake review tutorial",
+              url: "https://unrelated.net/oauth",
+            },
+          ],
+        },
+        sources: [
+          { sourceType: "url", url: launchUrl },
+          { sourceType: "url", url: "https://unrelated.net/oauth" },
+        ],
+        steps: [{ toolResults: [{ toolName: "web_search" }] }],
+      })
+      .mockResolvedValueOnce({ output: draft() })
+      .mockResolvedValueOnce({ output: { concerns: [] } });
+    mocks.safeFetch.mockImplementation(async (url: string) => ({
+      url,
+      status: 200,
+      text: html,
+      latencyMs: 20,
+    }));
+    const result = await research("GitHub", vi.fn(), AbortSignal.timeout(2000));
+    expect(result.sources.some((source) => source.url === launchUrl)).toBe(
+      true,
+    );
+    expect(
+      mocks.safeFetch.mock.calls.some(([url]) =>
+        String(url).includes("unrelated.net"),
+      ),
+    ).toBe(false);
+    expect(mocks.generateText.mock.calls[1]?.[0].prompt).toContain(
+      "direct installation",
+    );
+  });
   it("requires real web-search execution and search-backed URLs before fetching", async () => {
     mocks.generateText.mockResolvedValueOnce({
       ...discovery("https://invented-provider.com/oauth"),
@@ -316,6 +539,47 @@ describe("bounded research orchestration (mocked model and network)", () => {
     expect(mocks.generateText.mock.calls[2]?.[0].prompt).toContain(
       "least-privileged",
     );
+  });
+  it("retrieves a supplied official URL even when it is absent from search results", async () => {
+    const found = discovery();
+    found.output.documents = [];
+    found.sources = [];
+    mocks.generateText
+      .mockResolvedValueOnce(found)
+      .mockResolvedValueOnce({
+        output: { documents: [] },
+        sources: [],
+        steps: [{ toolResults: [{ toolName: "web_search" }] }],
+      })
+      .mockResolvedValueOnce({ output: draft() })
+      .mockResolvedValueOnce({ output: { concerns: [] } });
+    const supplied = "https://docs.github.com/en/apps/oauth-apps/new-document";
+    mocks.safeFetch.mockResolvedValue({
+      url: supplied,
+      status: 200,
+      text: html,
+      latencyMs: 20,
+    });
+    await research(supplied, vi.fn(), AbortSignal.timeout(2000), {
+      audience: "pilot",
+      capability: "Read issues",
+    });
+    expect(mocks.safeFetch).toHaveBeenCalledWith(supplied, expect.anything());
+    expect(mocks.generateText.mock.calls[2]?.[0].prompt).toContain(
+      "limited external customer pilot",
+    );
+    expect(mocks.generateText.mock.calls[2]?.[0].prompt).toContain(
+      "Read issues",
+    );
+  });
+  it("does not invent an OAuth app for a provider known not to support OAuth", async () => {
+    const found = discovery();
+    found.output.protocol = "no-oauth";
+    mocks.generateText.mockResolvedValueOnce(found);
+    await expect(
+      research("No OAuth Provider", vi.fn(), AbortSignal.timeout(2000)),
+    ).rejects.toThrow("UNSUPPORTED_AUTH");
+    expect(mocks.safeFetch).not.toHaveBeenCalled();
   });
   it("freshly fetches maintained production docs independently of search discovery and labels their origin", async () => {
     const found = discovery();
@@ -398,5 +662,27 @@ describe("bounded research orchestration (mocked model and network)", () => {
       research("GitHub", vi.fn(), AbortSignal.timeout(2000)),
     ).rejects.toThrow("SOURCE_UNAVAILABLE");
     expect(mocks.generateText).toHaveBeenCalledTimes(1);
+  });
+  it("retains failed source observations without treating the response as evidence", async () => {
+    const found = discovery();
+    const failed = "https://docs.github.com/en/apps/oauth-apps/review-policy";
+    found.output.documents.push({ title: "Review policy", url: failed });
+    found.sources.push({ sourceType: "url", url: failed });
+    mocks.generateText
+      .mockResolvedValueOnce(found)
+      .mockResolvedValueOnce({ output: draft() })
+      .mockResolvedValueOnce({ output: { concerns: [] } });
+    mocks.safeFetch.mockImplementation(async (url: string) => ({
+      url,
+      status: url === failed ? 403 : 200,
+      text: url === failed ? "Forbidden" : html,
+      latencyMs: 20,
+    }));
+    const result = await research("GitHub", vi.fn(), AbortSignal.timeout(2000));
+    expect(result.probes?.find((probe) => probe.url === failed)).toMatchObject({
+      status: 403,
+      finding: expect.stringContaining("No setup or approval facts"),
+    });
+    expect(result.sources.some((source) => source.url === failed)).toBe(false);
   });
 });

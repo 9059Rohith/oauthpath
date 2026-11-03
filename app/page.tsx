@@ -8,14 +8,23 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Hero } from "@/components/hero";
-import { Library } from "@/components/library";
+import { FeaturedLibrary } from "@/components/featured-library";
 import { Reveal } from "@/components/motion-effects";
 export default function Home() {
   return (
     <>
       <Hero />
+      <div className="ownership-entry shell">
+        <div>
+          <span className="eyebrow">BEFORE YOU REGISTER</span>
+          <p>You may be able to use a managed OAuth app.</p>
+        </div>
+        <Link prefetch={false} href="/start" className="text-link">
+          Choose your path <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+      </div>
       <Reveal>
-        <Library featured />
+        <FeaturedLibrary />
       </Reveal>
       <Reveal>
         <section className="method-section shell">

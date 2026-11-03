@@ -16,6 +16,9 @@ export function Header() {
           </span>
         </Link>
         <nav aria-label="Main navigation">
+          <Link prefetch={false} href="/start">
+            Start here
+          </Link>
           <Link prefetch={false} href="/library">
             Library
           </Link>

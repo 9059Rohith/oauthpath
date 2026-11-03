@@ -5,7 +5,7 @@
     "domain": "github.com",
     "category": "Developer tools",
     "color": "#d4d9e2",
-    "summary": "Self-serve registration. Decide whether an OAuth App or a fine-grained GitHub App fits before you build.",
+    "summary": "Register a user-authorized OAuth App. If you need fine-grained repository permissions or app-owned automation, use the separate GitHub App setup path instead.",
     "difficulty": "Straightforward",
     "effort": "1–3 hours · planning estimate for a first test connection"
   },

@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -14,7 +14,11 @@ import {
   CircleAlert,
   Square,
 } from "lucide-react";
-import type { ResearchEvent } from "@/lib/agent/research";
+import {
+  isGuideSlug,
+  ResearchStreamDecoder,
+  type ResearchProgress,
+} from "@/lib/agent/stream";
 const stages = [
   { key: "discover", label: "Find the official path", icon: Search },
   { key: "fetch", label: "Read the documentation", icon: BookOpen },
@@ -30,75 +34,89 @@ export function Generator({
   refresh?: boolean;
 }) {
   const [query, setQuery] = useState(initial);
+  const [audience, setAudience] = useState<"pilot" | "public" | "internal">(
+    "public",
+  );
+  const [capability, setCapability] = useState("");
   const [running, setRunning] = useState(false);
-  const [events, setEvents] = useState<ResearchEvent[]>([]);
+  const [events, setEvents] = useState<ResearchProgress[]>([]);
   const [error, setError] = useState("");
   const [finished, setFinished] = useState("");
   const controller = useRef<AbortController | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      controller.current?.abort();
+    };
+  }, []);
   const router = useRouter();
   async function run() {
-    if (!query.trim() || running) return;
+    if (!query.trim() || running || controller.current) return;
     setRunning(true);
     setEvents([]);
     setError("");
     setFinished("");
-    controller.current = new AbortController();
+    const active = new AbortController();
+    controller.current = active;
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, refresh }),
-        signal: controller.current.signal,
+        body: JSON.stringify({ query, refresh, audience, capability }),
+        signal: active.signal,
       });
       if (response.headers.get("content-type")?.includes("application/json")) {
         const data = await response.json();
+        if (!mounted.current) return;
         if (!response.ok) throw new Error(data.error);
-        if (data.slug) {
+        if (isGuideSlug(data.slug)) {
           router.push(`/guide/${data.slug}`);
           return;
         }
+        throw new Error(
+          "The server did not return a valid guide. Please try again.",
+        );
       }
       if (!response.ok || !response.body)
         throw new Error("Research could not start. Please try again.");
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+      if (!response.headers.get("content-type")?.includes("text/event-stream"))
+        throw new Error(
+          "The research service returned an unexpected response. Please try again.",
+        );
+      reader = response.body.getReader();
+      const decoder = new ResearchStreamDecoder();
+      let completed = false;
       while (true) {
         const { value, done } = await reader.read();
+        if (!mounted.current) return;
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let boundary;
-        while ((boundary = buffer.indexOf("\n\n")) >= 0) {
-          const chunk = buffer.slice(0, boundary);
-          buffer = buffer.slice(boundary + 2);
-          const event = chunk
-            .split("\n")
-            .find((l) => l.startsWith("event: "))
-            ?.slice(7);
-          const raw = chunk
-            .split("\n")
-            .find((l) => l.startsWith("data: "))
-            ?.slice(6);
-          if (!raw) continue;
-          const data = JSON.parse(raw);
-          if (event === "progress") setEvents((list) => [...list, data]);
-          if (event === "error") throw new Error(data.message);
-          if (event === "complete") {
-            setFinished(data.slug);
+        for (const event of decoder.push(value)) {
+          if (event.type === "progress")
+            setEvents((list) => [...list, event.data]);
+          if (event.type === "error") throw new Error(event.message);
+          if (event.type === "complete") {
+            completed = true;
+            setFinished(event.slug);
             setEvents((list) => [
               ...list,
               {
                 stage: "done",
                 message:
-                  data.mode === "document-scan"
+                  event.mode === "document-scan"
                     ? "Your public-document scan is saved. Requirements that need confirmation are marked unknown."
                     : "Your source-backed guide is ready.",
               },
             ]);
           }
         }
+        if (completed) break;
       }
+      decoder.finish();
     } catch (e) {
+      if (!mounted.current) return;
       if (e instanceof Error && e.name === "AbortError")
         setError(
           "Research stopped. You can start a new scan whenever you’re ready.",
@@ -110,7 +128,10 @@ export function Generator({
             : "Something went wrong. Please retry.",
         );
     } finally {
-      setRunning(false);
+      await reader?.cancel().catch(() => {});
+      reader?.releaseLock();
+      if (controller.current === active) controller.current = null;
+      if (mounted.current) setRunning(false);
     }
   }
   const current = events.at(-1)?.stage;
@@ -164,12 +185,46 @@ export function Generator({
           accessible to anyone with their link.
         </span>
       </div>
+      <details className="scenario-controls">
+        <summary>Tailor this guide</summary>
+        <p>
+          Describe public product information only. Do not include secrets,
+          credentials, or private customer data.
+        </p>
+        <div className="scenario-fields">
+          <label htmlFor="research-audience">Who will connect the app?</label>
+          <select
+            id="research-audience"
+            value={audience}
+            disabled={running}
+            onChange={(event) =>
+              setAudience(event.target.value as "pilot" | "public" | "internal")
+            }
+          >
+            <option value="public">External users — public launch</option>
+            <option value="pilot">A limited pilot or test group</option>
+            <option value="internal">People in my own organization</option>
+          </select>
+          <label htmlFor="research-capability">
+            What should your integration do? <span>(optional)</span>
+          </label>
+          <textarea
+            id="research-capability"
+            value={capability}
+            onChange={(event) => setCapability(event.target.value)}
+            maxLength={240}
+            rows={2}
+            disabled={running}
+            placeholder="Read calendar events, create tasks…"
+          />
+        </div>
+      </details>
       <div className="research-workspace">
         <aside className="research-stages">
           <span className="section-index">THE RESEARCH PATH</span>
           {stages.map((s, i) => (
             <div
-              className={`research-stage ${current === s.key ? "active" : ""} ${finished || currentIndex > i ? "done" : ""}`}
+              className={`research-stage ${running && current === s.key ? "active" : ""} ${finished || currentIndex > i ? "done" : ""}`}
               key={s.key}
             >
               <span>
@@ -184,9 +239,11 @@ export function Generator({
                 <small>
                   {finished || currentIndex > i
                     ? "Complete"
-                    : current === s.key
-                      ? "In progress"
-                      : "Waiting"}
+                    : error && i === Math.max(0, currentIndex)
+                      ? "Stopped"
+                      : running && current === s.key
+                        ? "In progress"
+                        : "Waiting"}
                 </small>
               </div>
             </div>
@@ -208,7 +265,9 @@ export function Generator({
                 ? "Research in progress"
                 : finished
                   ? "Research complete"
-                  : "Ready when you are"}
+                  : error
+                    ? "Research stopped"
+                    : "Ready when you are"}
             </span>
             <span className="mono">ACTIVITY LOG</span>
           </div>
