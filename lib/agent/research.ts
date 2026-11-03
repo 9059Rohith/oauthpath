@@ -71,6 +71,10 @@ const providerDocuments: Record<string, { title: string; url: string }[]> = {
         "Miro direct installation-link distribution (maintained entry point)",
       url: "https://developers.miro.com/docs/deploy-a-miro-app",
     },
+    {
+      title: "Miro customer installation controls (maintained entry point)",
+      url: "https://help.miro.com/hc/en-us/articles/4404659741458-App-management",
+    },
   ],
   "linear.app": [
     {
@@ -118,7 +122,7 @@ function launchCoverage(
     return "The requested scope is internal users only. Check documented internal account eligibility, registration, permissions and customer-admin controls. Explain external distribution limits only as a conditional future expansion path, not mandatory work for the internal scenario. Do not infer that an internal organization always qualifies for exemptions.";
   switch (domain.toLowerCase().replace(/^www\./, "")) {
     case "miro.com":
-      return "Use the current Marketplace submission changelog to distinguish private/direct installation-link distribution from publicly listed Marketplace distribution. Partner acceptance and Marketplace review do not automatically apply to sharing the installation URL. Customer controls can still apply. Do not treat Marketplace traction thresholds or review timing as prerequisites for every external installation. If sources of different dates conflict, state which route the statement applies to.";
+      return "Use the first-party distribution page to distinguish direct installation-link sharing from Marketplace listing. Partner acceptance, Marketplace review and listing traction thresholds are not prerequisites for every external installation. Use the manifest to distinguish REST redirectUris from the embedded Web SDK sdkUri; keep that distinction in requirements, completion checks, blockers and handoffs. Use the customer app-management page to establish conditional installation controls, not universal administrator-only installation. If that page is unavailable, explicitly ask the customer to confirm policy; do not assert either mandatory administrator status or unrestricted rights. Check every guide field for contradictions with these boundaries.";
     case "dropbox.com":
       return "Check the developer guide's Production approval and Applying for production status sections. Cover initial own-account development, Enable additional users, development cap, linked-user threshold, the apply-AND-receive-approval deadline and freeze recovery; distinguish that deadline from unknown review turnaround. Explain when review normally begins and any documented early-review exception. Source each applicable value from the retrieved text, not this instruction. Cover app-specific privacy policy, least privilege, production application location and required review materials.";
     case "linear.app":
@@ -510,6 +514,161 @@ export function qualifyEvidenceAbsence(value: string): string {
     .replace(/\bundocumented\b/gi, "not established by the retrieved sources");
 }
 
+/** Keep a correction consistent in all prose surfaces, including exported handoffs.
+ * Do not traverse source excerpts, observed probes, identifiers or generation history.
+ * Positive policy assertions require the exact freshly retrieved first-party page.
+ */
+function repairMiroConsistency(
+  result: Guide,
+  pages: { source: Source; text: string }[],
+  capability: string,
+) {
+  if (result.domain !== "miro.com") return;
+  const manifest = pages.find(
+    ({ source, text }) =>
+      canonicalSourceUrl(source.url) ===
+        "https://developers.miro.com/docs/app-manifest" &&
+      /sdkUri/i.test(text) &&
+      normalizeEvidenceText(text).includes(
+        "required only for apps that use the web sdk",
+      ) &&
+      /redirectUris/i.test(text),
+  );
+  const controls = pages.find(
+    ({ source, text }) =>
+      canonicalSourceUrl(source.url) ===
+        "https://help.miro.com/hc/en-us/articles/4404659741458-App-management" &&
+      [
+        "By default, users can add any app for their team",
+        "Company Admins can restrict user app management",
+      ].every((phrase) =>
+        normalizeEvidenceText(text).includes(normalizeEvidenceText(phrase)),
+      ),
+  );
+  const restOnly = !/web.?sdk|embedded|board ui|sidebar|panel/i.test(
+    capability,
+  );
+  const sdkText =
+    "For this REST integration, configure the backend OAuth callback in redirectUris. App URL (sdkUri) is required only for a Web SDK app with an embedded UI; it is not a REST-only prerequisite.";
+  const adminText = controls
+    ? "Installation rights depend on customer policy. Team administrators can restrict installation; Enterprise administrators can limit approved apps. Ask the customer to confirm permission and obtain approval if its policy requires it."
+    : "Confirm the target customer's installation permissions and any required administrator approval. The retrieved sources do not establish who may install in this organization; do not assume either administrator-only access or unrestricted installation.";
+  const sdkIssue = (value: string) =>
+    restOnly &&
+    Boolean(manifest) &&
+    /sdkUri|app[’']?s?\s+(?:(?:public|production)\s+)?url|manifest url|public url displays|app hosting|host (?:your |the )app.{0,55}public|deploy.{0,35}app.{0,25}public/i.test(
+      value,
+    );
+  const adminIssue = (value: string, context = value) =>
+    (/admin/i.test(value) &&
+      /install|customer|external user|organi[sz]ation|org\b|authoriz/i.test(
+        context,
+      )) ||
+    /approv.{0,50}(?:customer|organi[sz]ation).{0,30}install/i.test(value);
+  const flags = (value: string, context = value) => ({
+    sdk: sdkIssue(value),
+    admin: adminIssue(value, context),
+  });
+  const textFor = ({ sdk, admin }: ReturnType<typeof flags>) =>
+    [sdk ? sdkText : "", admin ? adminText : ""].filter(Boolean).join(" ");
+  const citationsFor = ({ sdk, admin }: ReturnType<typeof flags>) =>
+    [
+      sdk ? manifest?.source.id : undefined,
+      admin ? controls?.source.id : undefined,
+    ].filter((id): id is string => Boolean(id));
+  const rewrite = (value: string, context = value) => {
+    const affected = flags(value, context);
+    return affected.sdk || affected.admin ? textFor(affected) : value;
+  };
+  for (const key of [
+    "summary",
+    "effort",
+    "wait",
+    "approval",
+    "scenario",
+  ] as const) {
+    const value = rewrite(result[key]);
+    // These bounded cards must remain within their schema and preserve effort provenance.
+    result[key] =
+      key === "effort" && value !== result[key]
+        ? "Planning estimate: unknown after correcting the setup assumptions. Confirm callback implementation and customer installation policy before estimating the work."
+        : value;
+  }
+  result.requirements = result.requirements.map((claim) => {
+    const affected = flags(claim.text);
+    if (!affected.sdk && !affected.admin) return claim;
+    const sourceIds = [
+      ...new Set([...claim.sourceIds, ...citationsFor(affected)]),
+    ];
+    // Never retain the old quotation as evidence for a corrected proposition.
+    // Mixed or unverified policies remain explicit verification tasks.
+    if (affected.admin && !controls)
+      return { text: textFor(affected), evidence: "unknown", sourceIds };
+    return {
+      text: textFor(affected),
+      evidence: "documented",
+      sourceIds,
+      quote: affected.sdk
+        ? "apps that use the Web SDK"
+        : "Company Admins can restrict user app management",
+    };
+  });
+  for (const step of result.steps) {
+    const context = `${step.title} ${step.description} ${step.doneWhen} ${step.ifBlocked}`;
+    const affected = flags(context);
+    if (!affected.sdk && !affected.admin) continue;
+    if (flags(step.title, context).sdk || flags(step.title, context).admin)
+      step.title = affected.sdk
+        ? "Configure the REST OAuth callback; App URL is conditional"
+        : "Confirm customer installation permissions";
+    for (const key of ["description", "doneWhen", "ifBlocked"] as const)
+      step[key] = rewrite(step[key], context);
+    if (affected.sdk) {
+      step.doneWhen =
+        "The backend callback matches its registered redirect URI. Configure an embedded Web SDK App URL only if that interface is part of the product.";
+      step.ifBlocked =
+        "Compare the registered redirectUris with the backend callback. Do not substitute the Web SDK sdkUri for the OAuth callback.";
+    }
+    if (affected.admin) {
+      step.doneWhen =
+        "The customer has confirmed the account's installation permission, any policy-required approval is obtained, and the consenting test user completes the authorized installation.";
+      step.ifBlocked =
+        "Ask the customer's administrator to check app installation policy and approve access if required; do not assume every installer must be an administrator.";
+    }
+    step.sourceIds = [
+      ...new Set([...step.sourceIds, ...citationsFor(affected)]),
+    ];
+  }
+  for (const blocker of result.blockers) {
+    const context = `${blocker.title} ${blocker.description} ${blocker.action}`;
+    const affected = flags(context);
+    if (!affected.sdk && !affected.admin) continue;
+    blocker.title = affected.sdk
+      ? "REST callback and Web SDK settings differ"
+      : "Customer installation policy needs confirmation";
+    blocker.description = textFor(affected);
+    blocker.action = affected.admin
+      ? "Confirm the customer's installation policy and request approval if required."
+      : "Match the backend callback to redirectUris; configure sdkUri only for an embedded Web SDK UI.";
+    blocker.sourceIds = [
+      ...new Set([...blocker.sourceIds, ...citationsFor(affected)]),
+    ];
+  }
+  for (const detail of result.technical) {
+    const affected = flags(`${detail.label} ${detail.value}`);
+    if (!affected.sdk && !affected.admin) continue;
+    detail.label = affected.sdk
+      ? "REST callback versus Web SDK App URL"
+      : "Customer installation permissions";
+    detail.value = textFor(affected);
+    detail.sourceIds = [
+      ...new Set([...detail.sourceIds, ...citationsFor(affected)]),
+    ];
+  }
+  for (const key of ["agentCan", "humanMust", "uncertainties"] as const)
+    result[key] = [...new Set(result[key].map((value) => rewrite(value)))];
+}
+
 // Small, reviewable provider adapters protect pivotal launch facts from model
 // omissions. Each adapter activates only when its policy is present in THIS
 // run's fetched first-party document; source failure never becomes evidence.
@@ -729,73 +888,8 @@ export function applyLaunchSafeguards(
             "Use public distribution. For the optional manifest or prepopulated creation URL, specify distribution=public; check the documented creation flow rather than assuming a particular console toggle.";
     }
   }
+  repairMiroConsistency(result, pages, capability);
   if (result.domain === "miro.com") {
-    const manifest = pages.find(
-      (page) =>
-        page.source.url.includes("/docs/app-manifest") &&
-        /sdkUri/i.test(page.text) &&
-        /Web SDK/i.test(page.text) &&
-        /Required only/i.test(page.text),
-    );
-    if (
-      manifest &&
-      !/web.?sdk|embedded|board ui|sidebar|panel/i.test(capability)
-    ) {
-      const refs = [manifest.source.id];
-      result.steps = result.steps.map((step) => {
-        if (
-          /update.*app.settings.*url|set.*app.url/i.test(step.title) ||
-          /set (your |the )?app.?s? (public|production) url|app url|sdkUri/i.test(
-            step.description,
-          )
-        )
-          return {
-            ...step,
-            title: "Configure the REST OAuth callback; App URL is conditional",
-            description:
-              "For this server-side REST integration, register the OAuth callback in redirectUris and use that same redirect URI during authorization and code exchange. App URL (sdkUri) is required only for a Web SDK app with an embedded UI; do not add it as a REST-only prerequisite.",
-            doneWhen:
-              "The deployed callback exactly matches its registered redirect URI. An App URL is configured only if an embedded Web SDK UI is actually part of the product.",
-            ifBlocked:
-              "Check redirectUris rather than treating the Web SDK's sdkUri/App URL as the OAuth callback. Confirm which app surface you are building.",
-            sourceIds: [...new Set([...step.sourceIds, ...refs])],
-          };
-        if (/deploy/i.test(step.title))
-          return {
-            ...step,
-            title: "Deploy the server-side OAuth callback",
-            description:
-              "Host your server-side OAuth callback on the production backend. Configure its exact redirect URI and keep app secrets and user tokens on the server. An embedded Miro Web SDK interface is optional for this REST-only scenario.",
-            sourceIds: [...new Set([...step.sourceIds, ...refs])],
-          };
-        return step;
-      });
-      result.blockers = result.blockers.map((blocker) =>
-        /app.url|public.url|sdkUri/i.test(
-          `${blocker.title} ${blocker.description}`,
-        )
-          ? {
-              title:
-                "OAuth callback configuration differs from Web SDK app settings",
-              description:
-                "REST OAuth uses redirectUris. The App URL/sdkUri setting is specific to an embedded Web SDK app.",
-              action:
-                "Match the deployed callback to its registered redirect URI. Configure sdkUri only if you also build the Web SDK interface.",
-              sourceIds: refs,
-            }
-          : blocker,
-      );
-      result.requirements = result.requirements.map((claim) =>
-        /deploy.*(app|production)|app.url|sdkUri/i.test(claim.text)
-          ? {
-              text: "REST OAuth uses registered redirectUris. App URL (sdkUri) is required only for apps that use the Web SDK; an embedded UI is not a prerequisite for this REST-only integration.",
-              evidence: "documented" as const,
-              sourceIds: refs,
-              quote: "apps that use the Web SDK",
-            }
-          : claim,
-      );
-    }
     const sharing = pages.find(
       (page) =>
         /deploy-a-miro-app|updated-submission-process-for-the-miro-marketplace/.test(
@@ -1079,7 +1173,14 @@ export async function research(
         });
       }
     }
-    discovery.documents = [...unique.values()].slice(0, 4);
+    discovery.documents = (
+      discovery.domain === "miro.com"
+        ? [...registered, ...unique.values()].filter(
+            (doc, index, docs) =>
+              docs.findIndex((item) => item.url === doc.url) === index,
+          )
+        : [...unique.values()]
+    ).slice(0, 4);
     const hasLaunchSource = discovery.documents.some((doc) =>
       /production|distribut|marketplace|review|approval|publish|submit|share.your.app|app.manifest/i.test(
         `${doc.title} ${new URL(doc.url).pathname}`,

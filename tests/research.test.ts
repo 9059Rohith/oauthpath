@@ -61,6 +61,37 @@ function discovery(url = officialUrl) {
   };
 }
 
+const miroManifest = {
+  source: {
+    id: "miro-manifest",
+    title: "App manifest",
+    url: "https://developers.miro.com/docs/app-manifest",
+  },
+  text: "sdkUri: Required only for apps that use the Web SDK. redirectUris: Required only for apps that use the REST API.",
+};
+const miroControls = {
+  source: {
+    id: "miro-controls",
+    title: "App management",
+    url: "https://help.miro.com/hc/en-us/articles/4404659741458-App-management",
+  },
+  text: "By default, users can add any app for their team. Company Admins can restrict user app management to allow only certain apps to be added by their teams. Team and Company Admins can allow or restrict team members to add new apps for the team.",
+};
+function miroDraft() {
+  const guide = draft();
+  guide.domain = "miro.com";
+  guide.sources = [
+    {
+      id: "source-1",
+      title: "OAuth",
+      url: "https://developers.miro.com/docs/getting-started-with-oauth",
+    },
+    miroManifest.source,
+    miroControls.source,
+  ];
+  return guide;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.generateText.mockReset();
@@ -73,6 +104,199 @@ beforeEach(() => {
 });
 
 describe("research source boundaries", () => {
+  it("repairs the exact published Miro requirement, installation and blocker contradictions together", () => {
+    // Verbatim failing fields from miro-845d31e5e55f, copied from the production
+    // artifact. Keep the regression independent of ignored .local files in CI.
+    const guide = miroDraft();
+    guide.requirements[0]!.text =
+      "Install the app via installation URL; customer team-admin approval is required for install";
+    guide.requirements[0]!.quote = "share it with others, so they";
+    guide.steps[0]!.title = "Test Internal and External Installation";
+    guide.steps[0]!.description =
+      "Use the installation URL from the app settings to install the app to your own team (internal test). Then send the link to an external user (who must be a Miro team admin) to test installation in their org as well.";
+    guide.steps[0]!.doneWhen =
+      "External org admin completes installation, and your backend receives user tokens.";
+    guide.steps[0]!.ifBlocked =
+      "Confirm that external users have admin rights; review installation failure errors.";
+    guide.steps[1]!.title = "Deploy the server-side OAuth callback";
+    guide.steps[1]!.doneWhen =
+      "Public URL displays your app; app settings reference the deployed location.";
+    guide.blockers[0] = {
+      title: "App not visible to external users",
+      description:
+        "App hosting or manifest URL is private or on localhost rather than a public internet address.",
+      action: "Update sdkUri or hosting to a public URL.",
+      sourceIds: ["source-1"],
+    };
+    const before = structuredClone(guide);
+    const result = applyLaunchSafeguards(
+      guide,
+      [miroManifest, miroControls],
+      "oauth2",
+      "public",
+      "Read board items",
+    );
+    expect(result.requirements[0]).toMatchObject({
+      evidence: "documented",
+      quote: "Company Admins can restrict user app management",
+    });
+    expect(result.requirements[0]!.sourceIds).toContain("miro-controls");
+    expect(result.steps[0]!.description).toContain("depend on customer policy");
+    expect(result.steps[0]!.doneWhen).toContain("policy-required approval");
+    expect(result.steps[0]!.ifBlocked).toContain("if required");
+    expect(result.steps[1]!.doneWhen).toContain("backend callback");
+    expect(result.blockers[0]!.action).toContain("sdkUri only");
+    expect(result.blockers[0]!.sourceIds).toContain("miro-manifest");
+    expect(JSON.stringify(result)).not.toContain(
+      "who must be a Miro team admin",
+    );
+    expect(() => assertGuide(result)).not.toThrow();
+    expect(guide).toEqual(before);
+  });
+  it("covers every Miro prose surface without changing observed history or source records", () => {
+    const guide = miroDraft();
+    const falseClaim = "External users must be team admins to install the app.";
+    for (const key of [
+      "summary",
+      "effort",
+      "wait",
+      "approval",
+      "scenario",
+    ] as const)
+      guide[key] = falseClaim;
+    guide.technical = [
+      {
+        label: "Installer eligibility",
+        value: falseClaim,
+        sourceIds: ["source-1"],
+      },
+    ];
+    guide.agentCan = [falseClaim];
+    guide.humanMust = [falseClaim];
+    guide.uncertainties = [falseClaim];
+    guide.probes = [
+      {
+        url: miroManifest.source.url,
+        status: 200,
+        latencyMs: 10,
+        at: "2026-11-03T15:54:32.905Z",
+        finding:
+          "Public documentation fetched; authenticated setup was not tested.",
+      },
+    ];
+    const result = applyLaunchSafeguards(guide, [miroControls]);
+    for (const key of ["summary", "wait", "approval", "scenario"] as const)
+      expect(result[key]).toContain("depend on customer policy");
+    expect(result.effort).toContain("Planning estimate: unknown");
+    for (const key of ["agentCan", "humanMust", "uncertainties"] as const)
+      expect(result[key][0]).toContain("depend on customer policy");
+    expect(result.technical[0]!.sourceIds).toContain("miro-controls");
+    expect(result.sources).toEqual(guide.sources);
+    expect(result.probes).toEqual(guide.probes);
+    expect(result.generation).toEqual(guide.generation);
+    expect(() => assertGuide(result)).not.toThrow();
+  });
+  it("qualifies SDK prerequisites in every field, including recovery actions and handoffs", () => {
+    const guide = miroDraft();
+    const falseClaim =
+      "Set sdkUri to a public URL before any external installation.";
+    for (const key of [
+      "summary",
+      "effort",
+      "wait",
+      "approval",
+      "scenario",
+    ] as const)
+      guide[key] = falseClaim;
+    guide.requirements[0]!.text =
+      "Host your app on a publicly accessible URL to share with users outside your local/dev environment";
+    guide.steps[0]!.ifBlocked = falseClaim;
+    guide.blockers[0]!.action = falseClaim;
+    guide.technical = [
+      {
+        label: "App URL",
+        value: "https://app.miro.com",
+        sourceIds: ["source-1"],
+      },
+    ];
+    guide.agentCan = [falseClaim];
+    guide.humanMust = [falseClaim];
+    guide.uncertainties = [falseClaim];
+    const result = applyLaunchSafeguards(
+      guide,
+      [miroManifest],
+      "oauth2",
+      "public",
+      "Read board items",
+    );
+    expect(JSON.stringify(result)).not.toContain(falseClaim);
+    expect(result.requirements[0]!.text).toContain(
+      "not a REST-only prerequisite",
+    );
+    expect(result.steps[0]!.ifBlocked).toContain("Do not substitute");
+    expect(result.technical[0]!.value).toContain("required only");
+    for (const key of ["agentCan", "humanMust", "uncertainties"] as const)
+      expect(result[key][0]).toContain("required only");
+    expect(() => assertGuide(result)).not.toThrow();
+  });
+  it("turns unsupported universal admin claims into unknown verification tasks when help retrieval fails", () => {
+    const guide = miroDraft();
+    guide.requirements[0]!.text =
+      "Customer team-admin approval is required for install.";
+    guide.steps[0]!.description =
+      "External users must be Miro team admins to install.";
+    guide.humanMust = [
+      "Handle and approve actual customer organization installations.",
+    ];
+    const result = applyLaunchSafeguards(guide, [miroManifest]);
+    expect(result.requirements[0]!.evidence).toBe("unknown");
+    expect(result.requirements[0]!.quote).toBeUndefined();
+    expect(result.requirements[0]!.text).toContain(
+      "do not establish who may install",
+    );
+    expect(result.steps[0]!.description).toContain(
+      "do not establish who may install",
+    );
+    expect(result.humanMust[0]).toContain("do not establish who may install");
+    expect(JSON.stringify(result)).not.toContain(
+      "rights depend on customer policy",
+    );
+    expect(() => assertGuide(result)).not.toThrow();
+  });
+  it("requires exact first-party URLs and fresh policy text for positive Miro corrections", () => {
+    const guide = miroDraft();
+    guide.requirements[0]!.text =
+      "Team admin approval is required for install.";
+    guide.blockers[0]!.action = "Update sdkUri or hosting to a public URL.";
+    const result = applyLaunchSafeguards(guide, [
+      {
+        ...miroControls,
+        source: {
+          ...miroControls.source,
+          url: "https://help.miro.com.evil.net/hc/en-us/articles/4404659741458-App-management",
+        },
+      },
+      { ...miroManifest, text: "sdkUri Web SDK required only" },
+    ]);
+    expect(result.requirements[0]!.evidence).toBe("unknown");
+    expect(result.blockers[0]!.action).toBe(guide.blockers[0]!.action);
+    const absent = applyLaunchSafeguards(guide, [
+      { ...miroControls, text: "Sign in. Access denied." },
+    ]);
+    expect(absent.requirements[0]!.evidence).toBe("unknown");
+  });
+  it("retains embedded Web SDK configuration when that capability was requested", () => {
+    const guide = miroDraft();
+    guide.steps[0]!.description = "Set App URL/sdkUri to the hosted interface.";
+    const result = applyLaunchSafeguards(
+      guide,
+      [miroManifest],
+      "oauth2",
+      "public",
+      "Build an embedded Web SDK board UI",
+    );
+    expect(result.steps[0]!.description).toBe(guide.steps[0]!.description);
+  });
   it("bounds claims about missing documentation to the sources actually inspected", () => {
     expect(qualifyEvidenceAbsence("Admin rules are not documented.")).toBe(
       "Admin rules were not established by the retrieved sources.",
@@ -111,7 +335,7 @@ describe("research source boundaries", () => {
             title: "Manifest",
             url: "https://developers.miro.com/docs/app-manifest",
           },
-          text: "sdkUri is Required only for apps that use the Web SDK.",
+          text: "sdkUri is Required only for apps that use the Web SDK. REST apps use redirectUris.",
         },
       ],
       "oauth2",
@@ -485,6 +709,34 @@ describe("research source boundaries", () => {
 });
 
 describe("bounded research orchestration (mocked model and network)", () => {
+  it("reserves the four Miro evidence roles even when a supplied URL and extra search results exist", async () => {
+    const supplied = "https://developers.miro.com/reference/overview";
+    const found = discovery(supplied);
+    found.output.name = "Miro";
+    found.output.domain = "miro.com";
+    found.sources = [{ sourceType: "url", url: supplied }];
+    mocks.generateText
+      .mockResolvedValueOnce(found)
+      .mockResolvedValueOnce({ output: draft() })
+      .mockResolvedValueOnce({ output: { concerns: [] } });
+    mocks.safeFetch.mockImplementation(async (url: string) => ({
+      url,
+      status: 200,
+      text: html,
+      latencyMs: 20,
+    }));
+    const result = await research(supplied, vi.fn(), AbortSignal.timeout(2000));
+    expect(mocks.safeFetch.mock.calls.map(([url]) => url)).toEqual(
+      registeredProviderDocuments("miro.com").map((doc) => doc.url),
+    );
+    expect(result.sources).toHaveLength(4);
+    expect(result.sources.map((source) => source.url)).toContain(
+      miroControls.source.url,
+    );
+    expect(result.sources.map((source) => source.url)).toContain(
+      miroManifest.source.url,
+    );
+  });
   it("searches a missing launch path separately and rejects unrelated results", async () => {
     const found = discovery();
     found.output.documents[0]!.title = "OAuth setup";

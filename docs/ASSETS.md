@@ -1,5 +1,19 @@
 # Generated visual assets
 
+## Section artwork and scroll revision
+
+Generated with the built-in image tool on 3 November 2026 and copied into the project. All are decorative PNG originals served through responsive Next.js Image; headings, controls, provider names, marquee tracks and scroll effects are live HTML/CSS. No model-generated facts or fake UI are baked into the artwork.
+
+- `public/images/oauth-library-v3.png`: dark glass archival tiles and teal connections; used behind the guide-library introduction.
+- `public/images/oauth-evidence-v3.png`: optical glass prism focusing teal light into an amber point; used in the evidence section.
+- `public/images/oauth-horizon-v3.png`: branching teal paths toward an illuminated architectural opening; used behind the live-research call to action.
+
+Library prompt: Create a premium abstract 3D editorial website background asset for OAuthPath's OAuth guide library section. Wide horizontal cinematic composition, graphite black #090e13 backdrop, six distinct smoked-glass archival tiles arranged on a diagonal architectural shelf, thin luminous teal fiber connections, small restrained amber highlights, tactile brushed metal edges. Visual metaphor: many provider setup paths organized into a readable library. Crisp polished photoreal CGI, sophisticated light, deep negative space on left for live HTML heading; principal objects on right half. Not a UI screenshot. No text, letters, logos, numbers, badges, fake dashboard metrics or watermarks. Cohesive with a dark teal orbital OAuth gateway visual, but do not repeat the ring/planet. Landscape 3:2 composition.
+
+Evidence prompt: Create a premium abstract 3D editorial website image for OAuthPath's evidence and source verification section. Charcoal black #090e13 studio environment, a monumental optical glass prism/lens examining a few layered translucent sheets, precise fine teal light passes through the prism and becomes one sharply focused amber point. Visual metaphor: source clarity, inspectable evidence, uncertainty made visible. Asymmetric airy composition, object on right, generous dark negative space on left for live HTML text. Rich smoked glass, subtle metallic surface, realistic caustics, sophisticated CGI art direction. No text, words, numbers, checkmarks, shields, logos, UI, fake data or watermarks. Wide landscape 3:2 image, striking and sculptural, coherent with a teal/amber developer-tool website.
+
+Horizon prompt: Create a premium panoramic abstract 3D editorial website background for OAuthPath's live OAuth app investigation call-to-action. An elegant branching constellation of luminous teal pathways crosses a dark obsidian landscape toward a single distant warm amber opening in a vertical sculptural monolith, multiple routes becoming a clear destination. Deep charcoal #090e13 palette, polished architectural CGI, mist subtly catches the light, strong depth, no fantasy characters, restrained and credible developer-tool visual. Dark uncluttered left third for live HTML call-to-action, richest visual interest right half. No text, words, letters, numbers, logos, UI or watermarks. Landscape 3:2.
+
 ## Cinematic revision
 
 The revised site uses `public/images/oauth-cosmos-v2.png` for the full-bleed hero and `public/images/oauth-route-v2.png` for the launch-path section. Both were generated with the built-in image tool, saved into this workspace, and rendered with responsive Next.js Image. Text, orbital traces, progress indicators, and animations remain native UI elements.
