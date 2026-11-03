@@ -7,7 +7,7 @@ Recorded November 3, 2026. Targets are distinguished from observations.
 - **Linear:** [open the full AI guide](https://oauthpath-drab.vercel.app/guide/linear-e0fc5709ccf7) — 17.740 seconds. Production POST/SSE, then guide page. Mode verified as live AI research.
 - **Dropbox:** [open the full AI guide](https://oauthpath-drab.vercel.app/guide/dropbox-f2693009770b) — 18.955 seconds. Real browser form → production stream → persisted guide. Mode verified as live AI research.
 
-- **Miro (final reviewed path):** [open the tailored AI guide](https://oauthpath-drab.vercel.app/guide/miro-845d31e5e55f) — 32.787 seconds. Real public-audience/read-board browser submission → production stream → private save → reopened guide; zero browser runtime errors. Four current first-party sources, including the manifest separating REST OAuth from Web SDK settings.
+- **Miro:** actual tailored browser research completed in **36.945 seconds**, with zero browser runtime errors. Its [source-reviewed revision](https://oauthpath-drab.vercel.app/guide/miro-reviewed-ea26bc366b64) is the current example. The revision made no model calls, freshly fetched three usable official sources, recorded Help HTTP 403 as unavailable, and preserves the original AI timing as provenance; that duration is not editorial review time. Old demonstration links redirect to this correction; immutable originals remain intact.
 
 The Linear and Dropbox runs used direct OpenAI web search, fresh first-party source retrieval, full-model synthesis, evidence review, source-conditioned policy safeguards, private durable persistence, and reopened guide pages. The Dropbox test used the real browser form and streamed activity, not a mocked response. Individual timings are not a p95 or SLA.
 
@@ -15,15 +15,15 @@ The Linear and Dropbox runs used direct OpenAI web search, fresh first-party sou
 
 | Check | Result | Boundary |
 |---|---|---|
-| Unit tests | 160 passed | 60 network-security, 34 schema, 4 bounded-request, 33 research-policy, 20 stream, 9 scenario-input tests |
-| Browser regression | 24 passed in production, 1.1 minutes | Keyboard, filtering, persistence, Markdown download, responsive overflow, reduced motion, accessibility, streaming UI, real pointer/scroll transforms |
+| Unit tests | 176 passed | 60 network-security, 34 schema, 4 bounded-request, 42 research-policy, 20 stream, 9 scenario-input, 6 export, 1 revision tests |
+| Browser regression | 28 passed in production, 54.2 seconds | Keyboard, filtering, persistence, Markdown download, responsive overflow, reduced motion, accessibility, streaming UI, real pointer/scroll transforms |
 | Automated accessibility | Zero serious/critical issues on five routes | WCAG A/AA axe rules; not a complete manual audit |
 | TypeScript, lint, build | Passed | Production build also runs lint and unit tests before publishing |
 | Production dependency audit | Zero known vulnerabilities | Snapshot, not a security certification |
 | Secret handling check | Passed | Supplied credential absent from tracked files; local environment and QA artifacts ignored |
-| Mobile Lighthouse | Performance 96; Accessibility 100; Best Practices 100; SEO 100 | LCP 2.3 s; TBT 90 ms; CLS 0 |
+| Mobile Lighthouse | Performance 92; Accessibility 100; Best Practices 100; SEO 100 | LCP 2.5 s; TBT 140 ms; CLS 0 |
 
-The latest mobile lab run met the performance target of 92, scoring 96 after splitting static featured cards from the client library. Earlier runs ranged from 75 to 85. This is an observed lab result, not a guarantee across devices, runs or networks. No measured field INP or production p95 is claimed.
+The latest mobile lab run met the performance target of 92, scoring 92 with the additional section art, word motion and provider marquees. The previous leaner visual release scored 96; earlier runs ranged from 75 to 85. This is an observed lab result, not a guarantee across devices, runs or networks. No measured field INP or production p95 is claimed.
 
 Seven stream-presentation tests use explicit fixtures to exercise UI success/error behavior; they are separate from the real production demonstrations above.
 
@@ -55,3 +55,9 @@ Google and GitHub procedural gaps were corrected from fresh sources; see [the co
 Miro's [manifest reference](https://developers.miro.com/docs/app-manifest) was fetched with the restricted client (HTTP 200; 5,493 cleaned characters) to verify that App URL/`sdkUri` is required only for Web SDK apps. Source-conditioned corrections separate that field from REST OAuth `redirectUris`. Callback validation, server-side code exchange and an authorized scoped test appear before app sharing. This is guidance, not a claim that the provider setup was performed.
 
 Production API boundary checks returned 200 for an existing cached guide, 400 for an IP-literal target, 403 for a foreign Origin and 413 for an oversized request. These checks did not trigger model generation.
+
+## Final submission audit and presentation
+
+[Every assignment requirement is mapped to evidence](docs/FINAL_REQUIREMENTS_AUDIT.md). New art is documented in [the asset prompts](docs/ASSETS.md). Scroll type and parallax are driven by one bounded frame callback for visible sections, with static reduced-motion behavior. Marquees pause manually, on hover/focus and offscreen; visible repeated links work without duplicate keyboard stops. Actual desktop/mobile screenshots were inspected for word spacing, image composition, readability and clipping. Mobile guide cards use a readable single column.
+
+The final audit corrected export omissions (approval, research mode, agent/human handoffs, source dates and HTTP observations) and cross-section Miro contradictions. Positive corrections require fresh official evidence; blocked customer-policy evidence remains explicitly unknown. Source review was necessary because a model-only critic did not establish complete semantic accuracy. The reviewed Miro derivative retains actual test-install actions while correcting SDK-specific recovery instructions.

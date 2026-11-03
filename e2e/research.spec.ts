@@ -1,5 +1,20 @@
 import { expect, test } from "@playwright/test";
 
+test("reviewed demonstration links open the corrected source-reviewed guide", async ({
+  page,
+}) => {
+  test.skip(
+    !process.env.PLAYWRIGHT_BASE_URL,
+    "Requires the deployed demonstration guide store.",
+  );
+  await page.goto("/guide/miro-845d31e5e55f");
+  await expect(page).toHaveURL(/\/guide\/miro-reviewed-ea26bc366b64$/);
+  await expect(
+    page.getByText("AI draft · source-reviewed revision", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("#evidence")).toContainText("403");
+});
+
 // These tests exercise transport/UI behavior with mocked responses. They are
 // deliberately not evidence of a live provider lookup or OAuth setup.
 for (const [name, body] of [

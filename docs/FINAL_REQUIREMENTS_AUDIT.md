@@ -28,6 +28,8 @@ Markdown downloads previously omitted the approval route, agent/human responsibi
 
 The prior Miro example contained contradictory administrator and Web SDK claims in requirements, blocker recovery and copied handoffs even after its overview was corrected. The correction pass now checks every semantic field. Fresh Help evidence supports positive policy statements; if that document is blocked, mandatory admin claims become explicit unknown verification tasks. REST-only callback instructions stay separate from embedded Web SDK `sdkUri` settings. Regression fixtures reproduce the actual observed mistakes rather than only testing ideal drafts.
 
+The current Miro demonstration is a source-reviewed derivative of a real production browser run. It is labeled accordingly; no new model call or authenticated setup is implied. Known old demonstration URLs redirect to the correction while their immutable private records remain intact. The fresh review recorded three usable official documents and Help HTTP 403, and retained a concrete authorized installation step rather than replacing it with generic recovery advice.
+
 Visual additions are separate from evidence: each major homepage section has decorative artwork, scroll typography is text in the DOM, provider marquees have a pause control and keyboard behavior, and reduced motion provides static content. None of the imagery implies provider approval or measured success.
 
 ## Boundaries retained

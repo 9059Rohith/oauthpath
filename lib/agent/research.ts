@@ -556,8 +556,8 @@ function repairMiroConsistency(
   const sdkIssue = (value: string) =>
     restOnly &&
     Boolean(manifest) &&
-    /sdkUri|app[’']?s?\s+(?:(?:public|production)\s+)?url|manifest url|public url displays|app hosting|host (?:your |the )app.{0,55}public|deploy.{0,35}app.{0,25}public/i.test(
-      value,
+    /sdkUri|app[’']?s?\s+(?:(?:public|production)\s+)?url|manifest url|(?:public|production)\s+url|app\s+settings.{0,70}\burl\b|\burl\b.{0,70}app\s+settings|app hosting|host (?:your |the )app.{0,55}public|deploy.{0,35}app.{0,25}public/i.test(
+      value.replace(/\binstallation\s+url\b/gi, "installation link"),
     );
   const adminIssue = (value: string, context = value) =>
     (/admin/i.test(value) &&
@@ -616,6 +616,9 @@ function repairMiroConsistency(
   for (const step of result.steps) {
     const context = `${step.title} ${step.description} ${step.doneWhen} ${step.ifBlocked}`;
     const affected = flags(context);
+    const sdkStep = sdkIssue(step.title) || sdkIssue(step.description);
+    const sdkDone = sdkIssue(step.doneWhen);
+    const sdkRecovery = sdkIssue(step.ifBlocked);
     if (!affected.sdk && !affected.admin) continue;
     if (flags(step.title, context).sdk || flags(step.title, context).admin)
       step.title = affected.sdk
@@ -623,9 +626,11 @@ function repairMiroConsistency(
         : "Confirm customer installation permissions";
     for (const key of ["description", "doneWhen", "ifBlocked"] as const)
       step[key] = rewrite(step[key], context);
-    if (affected.sdk) {
+    if (affected.sdk && (sdkStep || sdkDone)) {
       step.doneWhen =
         "The backend callback matches its registered redirect URI. Configure an embedded Web SDK App URL only if that interface is part of the product.";
+    }
+    if (affected.sdk && (sdkStep || sdkRecovery)) {
       step.ifBlocked =
         "Compare the registered redirectUris with the backend callback. Do not substitute the Web SDK sdkUri for the OAuth callback.";
     }

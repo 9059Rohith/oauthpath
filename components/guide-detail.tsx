@@ -359,6 +359,10 @@ export function GuideDetail({ guide }: { guide: Guide }) {
             </p>
           ) : guide.generation?.mode === "live" ? (
             <p className="badge badge-blue">AI researched · review sources</p>
+          ) : guide.category === "Reviewed live research" ? (
+            <p className="badge badge-blue">
+              AI draft · source-reviewed revision
+            </p>
           ) : (
             <p className="badge badge-blue">
               Curated guide · documentation reviewed

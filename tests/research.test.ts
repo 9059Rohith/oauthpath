@@ -104,6 +104,36 @@ beforeEach(() => {
 });
 
 describe("research source boundaries", () => {
+  it("repairs the fresh v6 generic public-URL wording throughout a hosting step", () => {
+    // Exact step from the subsequent actual browser run, miro-adee6b37cdb2.
+    const guide = miroDraft();
+    guide.steps[0]!.title = "Set Up Secure Hosting and Obtain Public URL";
+    guide.steps[0]!.description =
+      "Deploy app backend/frontend (if any) to a trusted service, ensuring HTTPS. Update app settings in Miro portal with this public URL.";
+    guide.steps[0]!.doneWhen =
+      "Public URL loads your app and appears in Miro app settings.";
+    guide.steps[0]!.ifBlocked =
+      "If unable to publish URL, resolve hosting or DNS issues first.";
+    const result = applyLaunchSafeguards(
+      guide,
+      [miroManifest],
+      "oauth2",
+      "public",
+      "Read board items",
+    );
+    expect(result.steps[0]!.title).toContain("REST OAuth callback");
+    expect(result.steps[0]!.description).toContain(
+      "backend OAuth callback in redirectUris",
+    );
+    expect(result.steps[0]!.doneWhen).toContain(
+      "backend callback matches its registered redirect URI",
+    );
+    expect(result.steps[0]!.ifBlocked).toContain("Do not substitute");
+    expect(result.steps[0]!.sourceIds).toContain("miro-manifest");
+    expect(JSON.stringify(result.steps[0])).not.toContain(
+      "Public URL loads your app",
+    );
+  });
   it("repairs the exact published Miro requirement, installation and blocker contradictions together", () => {
     // Verbatim failing fields from miro-845d31e5e55f, copied from the production
     // artifact. Keep the regression independent of ignored .local files in CI.
@@ -296,6 +326,19 @@ describe("research source boundaries", () => {
       "Build an embedded Web SDK board UI",
     );
     expect(result.steps[0]!.description).toBe(guide.steps[0]!.description);
+  });
+  it("preserves actual installation actions while correcting only an unrelated SDK recovery instruction", () => {
+    const guide = miroDraft();
+    guide.steps[0]!.title = "Test app installation with an external user";
+    guide.steps[0]!.description =
+      "Share the Installation URL (from app settings) with a consenting test user and verify board access.";
+    guide.steps[0]!.doneWhen =
+      "The test user authorizes access and a scoped read-only API request succeeds.";
+    guide.steps[0]!.ifBlocked = "Update sdkUri or hosting to a public URL.";
+    const result = applyLaunchSafeguards(guide, [miroManifest]);
+    expect(result.steps[0]!.description).toBe(guide.steps[0]!.description);
+    expect(result.steps[0]!.doneWhen).toBe(guide.steps[0]!.doneWhen);
+    expect(result.steps[0]!.ifBlocked).toContain("Do not substitute");
   });
   it("bounds claims about missing documentation to the sources actually inspected", () => {
     expect(qualifyEvidenceAbsence("Admin rules are not documented.")).toBe(
