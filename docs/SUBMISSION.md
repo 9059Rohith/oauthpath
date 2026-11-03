@@ -39,6 +39,7 @@ This slice uses eight real providers rather than manufacturing a hundred shallow
 - Dropbox's two-week threshold deadline is not an approval-turnaround promise. Production limits and freeze recovery are source-conditioned.
 - Linear public distribution is relevant to external workspaces, not an automatic prerequisite for an internal-only app.
 - An initial Miro draft confused external sharing with Marketplace publishing. Independent source review found its installation-link route. The unpublished local draft prompted a separate launch-policy search, stronger route distinctions, and maintained sharing-document entry points.
+- Miro's embedded Web SDK App URL setting also appeared in a REST-only draft. Its official manifest reference establishes that `sdkUri` is Web SDK only; the revised research path keeps the REST callback in `redirectUris` and makes embedded UI configuration conditional.
 - Document fetch success establishes retrieval only. Failed source requests, unavailable facts, account sign-in and provider review remain separate evidence states.
 
 ## Deliberate limits

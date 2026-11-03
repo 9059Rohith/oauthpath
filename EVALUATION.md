@@ -7,7 +7,9 @@ Recorded November 3, 2026. Targets are distinguished from observations.
 - **Linear:** [open the full AI guide](https://oauthpath-drab.vercel.app/guide/linear-e0fc5709ccf7) — 17.740 seconds. Production POST/SSE, then guide page. Mode verified as live AI research.
 - **Dropbox:** [open the full AI guide](https://oauthpath-drab.vercel.app/guide/dropbox-f2693009770b) — 18.955 seconds. Real browser form → production stream → persisted guide. Mode verified as live AI research.
 
-Both runs used direct OpenAI web search, fresh first-party source retrieval, full-model synthesis, evidence review, source-conditioned policy safeguards, private durable persistence, and reopened guide pages. The Dropbox test used the real browser form and streamed activity, not a mocked response. Individual timings are not a p95 or SLA.
+- **Miro (final reviewed path):** [open the tailored AI guide](https://oauthpath-drab.vercel.app/guide/miro-845d31e5e55f) — 32.787 seconds. Real public-audience/read-board browser submission → production stream → private save → reopened guide; zero browser runtime errors. Four current first-party sources, including the manifest separating REST OAuth from Web SDK settings.
+
+The Linear and Dropbox runs used direct OpenAI web search, fresh first-party source retrieval, full-model synthesis, evidence review, source-conditioned policy safeguards, private durable persistence, and reopened guide pages. The Dropbox test used the real browser form and streamed activity, not a mocked response. Individual timings are not a p95 or SLA.
 
 ## Automated checks
 
@@ -49,3 +51,7 @@ Vercel is connected to GitHub and gates builds with lint and unit tests. The Git
 The ownership chooser explains managed versus custom registration and links to Composio's provider/method-specific directory. Guides advance to the next incomplete task, open it, allow local reset, and copy remaining work with sources and human handoffs. Research accepts audience/capability input, distinguishes protocol families, retrieves supplied official URLs independently of search indexing, searches missing launch policies separately, records failed retrieval observations, and rejects interrupted/unsafe stream payloads.
 
 Google and GitHub procedural gaps were corrected from fresh sources; see [the correction notes](docs/SEED_CORRECTIONS.md). Independent Miro review caught a direct-install versus Marketplace mistake in an unpublished local draft. Maintained sharing sources, narrowed absence claims, and a source-conditioned distinction now qualify the route without promising customer-admin exemptions.
+
+Miro's [manifest reference](https://developers.miro.com/docs/app-manifest) was fetched with the restricted client (HTTP 200; 5,493 cleaned characters) to verify that App URL/`sdkUri` is required only for Web SDK apps. Source-conditioned corrections separate that field from REST OAuth `redirectUris`. Callback validation, server-side code exchange and an authorized scoped test appear before app sharing. This is guidance, not a claim that the provider setup was performed.
+
+Production API boundary checks returned 200 for an existing cached guide, 400 for an IP-literal target, 403 for a foreign Origin and 413 for an oversized request. These checks did not trigger model generation.
