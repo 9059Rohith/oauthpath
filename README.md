@@ -46,7 +46,7 @@ Deploy this Next.js project to Vercel with the same server environment variables
 
 ## Verification and limits
 
-176 unit tests and 28 production browser checks passed. Production dependency audit found zero known vulnerabilities. Latest mobile Lighthouse: **92 performance / 100 accessibility / 100 best practices / 100 SEO**, LCP 2.5s, TBT 140ms, CLS 0. These are lab observations, not field guarantees. Real browser Miro research completed in 36.945s; earlier Linear/Dropbox runs took 17.740s/18.955s. The Miro example is explicitly labeled as a source-reviewed derivative of that live run. See [the detailed evaluation](EVALUATION.md).
+176 unit tests and 29 production browser checks passed. Production dependency audit found zero known vulnerabilities. Latest mobile Lighthouse: **92 performance / 100 accessibility / 100 best practices / 100 SEO**, LCP 2.5s, TBT 140ms, CLS 0. These are lab observations, not field guarantees. Real browser Miro research completed in 36.945s; earlier Linear/Dropbox runs took 17.740s/18.955s. The Miro example is explicitly labeled as a source-reviewed derivative of that live run. See [the detailed evaluation](EVALUATION.md).
 
 No authenticated provider app registration, token exchange, or completed approval is claimed. [Actual anonymous setup attempts](docs/SETUP_ATTEMPTS.md) record sign-in boundaries, an inaccessible console, and public OIDC metadata. [Corrections](docs/SEED_CORRECTIONS.md) explain what source review changed. Model prose still needs source inspection; citations and an AI critic do not establish universal accuracy.
 

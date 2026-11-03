@@ -16,7 +16,7 @@ The Linear and Dropbox runs used direct OpenAI web search, fresh first-party sou
 | Check | Result | Boundary |
 |---|---|---|
 | Unit tests | 176 passed | 60 network-security, 34 schema, 4 bounded-request, 42 research-policy, 20 stream, 9 scenario-input, 6 export, 1 revision tests |
-| Browser regression | 28 passed in production, 54.2 seconds | Keyboard, filtering, persistence, Markdown download, responsive overflow, reduced motion, accessibility, streaming UI, real pointer/scroll transforms |
+| Browser regression | 29 passed in production, 53.1 seconds | Keyboard, filtering, persistence, Markdown download, responsive overflow, reduced motion, accessibility, streaming UI, real pointer/scroll transforms |
 | Automated accessibility | Zero serious/critical issues on five routes | WCAG A/AA axe rules; not a complete manual audit |
 | TypeScript, lint, build | Passed | Production build also runs lint and unit tests before publishing |
 | Production dependency audit | Zero known vulnerabilities | Snapshot, not a security certification |
