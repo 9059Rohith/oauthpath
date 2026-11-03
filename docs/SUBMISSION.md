@@ -4,6 +4,8 @@
 
 **Source repository:** https://github.com/9059Rohith/oauthpath
 
+**Actual application demo (2:05):** https://oauthpath-drab.vercel.app/demo/oauthpath-demo.mp4 — real browser footage, including a fresh Asana research request. [Chapters and provenance](DEMO.md).
+
 ## The problem and the scope
 
 A provider OAuth app is the identity and configuration that users authorize. It is separate from the developer's integration and from each user's connection and tokens. Sometimes a managed app removes the need to create a registration; otherwise provider requirements can delay legitimate external access. The product starts with that ownership decision, then gives developers a concrete next action.
@@ -20,17 +22,17 @@ This slice uses eight real providers rather than manufacturing a hundred shallow
 
 ## Evidence against the assignment
 
-| Requirement | Reviewable implementation |
-|---|---|
-| Understand integration versus app versus connection | `/start` explains the three identities and managed/custom ownership |
-| Show varied real apps | Eight source-reviewed guides, with 52 ordered tasks and 29 source entries |
-| Make effort and waiting understandable | Separate complexity, editorial hands-on estimate, provider waiting and approval route |
-| Make the next step actionable | Owner, done-when, blocker recovery, next incomplete task and local progress |
-| Generate outside the library | Actual OpenAI search, verified source retrieval, typed synthesis/review and saved guides |
-| Be useful without explanation | Self-contained shareable guide, source links, Markdown, print and handoff pack |
-| Use agents thoughtfully | Parallel source investigation, security implementation and independent semantic review; human account boundaries retained |
-| Check real guidance | Source audits, anonymous console attempts, model corrections and production demonstrations in `EVALUATION.md` |
-| Explain product decisions and limits | Short README, decisions, security model, setup attempts and evaluation |
+| Requirement                                         | Reviewable implementation                                                                                                 |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Understand integration versus app versus connection | `/start` explains the three identities and managed/custom ownership                                                       |
+| Show varied real apps                               | Eight source-reviewed guides, with 52 ordered tasks and 29 source entries                                                 |
+| Make effort and waiting understandable              | Separate complexity, editorial hands-on estimate, provider waiting and approval route                                     |
+| Make the next step actionable                       | Owner, done-when, blocker recovery, next incomplete task and local progress                                               |
+| Generate outside the library                        | Actual OpenAI search, verified source retrieval, typed synthesis/review and saved guides                                  |
+| Be useful without explanation                       | Self-contained shareable guide, source links, Markdown, print and handoff pack                                            |
+| Use agents thoughtfully                             | Parallel source investigation, security implementation and independent semantic review; human account boundaries retained |
+| Check real guidance                                 | Source audits, anonymous console attempts, model corrections and production demonstrations in `EVALUATION.md`             |
+| Explain product decisions and limits                | Short README, decisions, security model, setup attempts and evaluation                                                    |
 
 ## What the investigation changed
 

@@ -1,5 +1,31 @@
 import { expect, test } from "@playwright/test";
 
+test("earlier Asana demonstration links lead to fresh research with the review gate before external rollout", async ({
+  page,
+}) => {
+  test.skip(
+    !process.env.PLAYWRIGHT_BASE_URL,
+    "Requires the deployed demonstration guide store.",
+  );
+  await page.goto("/guide/asana-388e5a26d9e2");
+  await expect(page).toHaveURL(/\/guide\/asana-7aa2432c6752$/);
+  await expect(
+    page.getByText("AI researched · review sources", { exact: true }),
+  ).toBeVisible();
+  const titles = await page.locator("#steps .step-title").allTextContents();
+  expect(
+    titles.indexOf("Resolve the external-distribution review requirement"),
+  ).toBeLessThan(
+    titles.indexOf(
+      "Switch distribution setting to Any workspace for external rollout",
+    ),
+  );
+  await expect(page.locator("#evidence")).toContainText("Source conflict:");
+  await expect(page.locator("main")).not.toContainText(
+    "cannot enable 'Any workspace'",
+  );
+});
+
 test("reviewed demonstration links open the corrected source-reviewed guide", async ({
   page,
 }) => {
