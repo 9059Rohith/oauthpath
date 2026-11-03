@@ -1,5 +1,50 @@
 import { expect, test } from "@playwright/test";
 
+test("homepage fills wide and tall screens without clipping its content", async ({
+  page,
+}) => {
+  await page.goto("/");
+  for (const viewport of [
+    { width: 2560, height: 1440 },
+    { width: 1920, height: 1080 },
+    { width: 1440, height: 900 },
+    { width: 1366, height: 768 },
+    { width: 390, height: 844 },
+    { width: 375, height: 667 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+    const bounds = await page.evaluate(() => {
+      const hero = document
+        .querySelector(".hero-cinematic")!
+        .getBoundingClientRect();
+      const copy = document
+        .querySelector(".hero-copy")!
+        .getBoundingClientRect();
+      const foot = document
+        .querySelector(".hero-foot")!
+        .getBoundingClientRect();
+      const nav = document.querySelector(".nav-inner")!.getBoundingClientRect();
+      return {
+        hero: { left: hero.left, right: hero.right, bottom: hero.bottom },
+        copyRight: copy.right,
+        footBottom: foot.bottom,
+        navWidth: nav.width,
+        documentWidth: document.documentElement.scrollWidth,
+      };
+    });
+    expect(bounds.hero.left).toBe(0);
+    expect(bounds.hero.right).toBe(viewport.width);
+    expect(bounds.hero.bottom).toBeGreaterThanOrEqual(viewport.height - 1);
+    expect(bounds.copyRight).toBeLessThanOrEqual(viewport.width);
+    expect(bounds.footBottom).toBeLessThanOrEqual(bounds.hero.bottom);
+    expect(bounds.documentWidth).toBe(viewport.width);
+    if (viewport.width >= 1920)
+      expect(bounds.navWidth).toBeGreaterThan(viewport.width * 0.9);
+  }
+});
+
 for (const width of [390, 1440]) {
   test(`hero stays level with visible vertical parallax at ${width}px`, async ({
     page,

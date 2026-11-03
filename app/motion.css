@@ -2,9 +2,11 @@
   --scene-y: 0px;
   width: 100%;
   max-width: none;
-  padding-inline: max(56px, calc((100vw - 1264px) / 2));
-  padding-top: 84px;
-  min-height: 728px;
+  padding-inline: var(--page-gutter);
+  padding-top: clamp(40px, 9svh, 112px);
+  min-height: calc(100svh - var(--site-header-height));
+  display: flex;
+  flex-direction: column;
   isolation: isolate;
   overflow: visible;
   background: #070d13;
@@ -122,7 +124,8 @@
 .hero-cinematic .hero-foot {
   position: relative;
   z-index: 2;
-  margin-top: 66px;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 .hero-cinematic .suggestions {
   color: #c7d3da;
@@ -304,8 +307,7 @@
 }
 @media (max-width: 1100px) {
   .hero.hero-cinematic {
-    padding-inline: 32px;
-    min-height: 700px;
+    padding-inline: var(--page-gutter);
   }
   .hero-cinematic h1 {
     font-size: 82px;
@@ -327,9 +329,8 @@
     animation-duration: 900ms, 6s;
   }
   .hero.hero-cinematic {
-    padding-inline: 22px;
-    padding-top: 59px;
-    min-height: 680px;
+    padding-inline: var(--page-gutter);
+    padding-top: clamp(32px, 7svh, 59px);
   }
   .hero-cinematic h1 {
     font-size: clamp(53px, 12.5vw, 79px);
@@ -352,7 +353,7 @@
     max-width: 360px;
   }
   .hero-cinematic .hero-foot {
-    margin-top: 48px;
+    margin-top: auto;
   }
   .hero-cinematic .hero-foot > span:last-child {
     max-width: 330px;
@@ -375,7 +376,6 @@
 @media (max-width: 360px) {
   .hero.hero-cinematic {
     padding-inline: 15px;
-    min-height: 620px;
   }
   .hero-cinematic h1 {
     font-size: 53px;
