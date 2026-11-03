@@ -84,9 +84,12 @@ npm run build
 - Automated accessibility checks found zero serious or critical WCAG A/AA violations across home, library, GitHub guide, and generation pages. This is not a certification of complete accessibility.
 - Production dependency audit: zero known vulnerabilities at the recorded check.
 - Production build, TypeScript, and lint passed.
+- Final isolated mobile Lighthouse run: Performance 85, Accessibility 100, Best Practices 100, SEO 100; LCP 2.5s and CLS 0. The performance target of 92 was not met in this lab run.
 - Full AI quality/latency, authenticated OAuth setup, and provider approval have **not** been verified. Mocked stream tests are not evidence of successful model generation.
 
 See [EVALUATION.md](EVALUATION.md), [SECURITY.md](SECURITY.md), [DECISIONS.md](DECISIONS.md), and [research notes](docs/RESEARCH.md).
+
+Vercel is connected to this GitHub repository. A GitHub Actions workflow is supplied as [an installable template](docs/ci-workflow.yml): the publishing credential lacks GitHub's `workflow` scope, so it could not be installed under `.github/workflows/`. No green GitHub Actions run is claimed.
 
 ## Roadmap to 100 guides
 

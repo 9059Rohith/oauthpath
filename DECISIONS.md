@@ -15,3 +15,4 @@
 13. **Hosting:** GitHub Pages cannot run this app's server-side agent and private persistence. Vercel is the full-stack deployment target; GitHub stores the source.
 14. **Security tradeoff:** the current CSP allows same-origin inline framework scripts. It blocks framing, objects and third-party connections; nonce-based strict script CSP remains hardening work, not a completed guarantee.
 15. **Editorial limitations:** source references and structural validation do not prove semantic correctness. The live AI critic is an additional check, not a trust oracle, and its full behavior is still blocked from live validation.
+16. **Publishing permissions:** GitHub rejected the initial push containing an active workflow because the credential lacks workflow scope. The repository was published with the same workflow preserved as `docs/ci-workflow.yml`; Vercel is connected to the repository for builds. No CI success is invented.

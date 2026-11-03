@@ -12,6 +12,7 @@ Recorded November 3, 2026. Targets are not reported as measurements.
 | Reduced motion | Passed | Headline remains visible; motion disabled |
 | Dependency audit | Zero production vulnerabilities | Snapshot of `npm audit --omit=dev` |
 | TypeScript, ESLint, production build | Passed | Installed lockfile versions |
+| Final mobile Lighthouse | Performance 85 / Accessibility 100 / Best Practices 100 / SEO 100 | Isolated lab run; LCP 2.5s, TBT 480ms, CLS 0; performance target not met |
 | Real Linear source scan | Saved and reopened | Document scan, not AI synthesis |
 | Production unseeded scans | Linear 1.917s; Dropbox 3.119s | One request each, including streamed response and persistence; not a latency distribution |
 | Live AI generation quality | Not measured | Gateway account verification required |
@@ -19,6 +20,10 @@ Recorded November 3, 2026. Targets are not reported as measurements.
 | Provider approval | Not tested | No applications submitted |
 
 The two SSE browser tests deliberately mock progress and completion/error messages to test presentation. They must not be counted as successful live research. Live source retrieval is checked separately.
+
+The initial mobile Lighthouse run scored 74. Removing the animation runtime and moving full seed bodies and Zod out of landing-page client imports reduced the JavaScript/data work. The final isolated run scored 85. Concurrent browser-test runs scored 80; no field INP or p95 performance result is claimed. The remaining performance work is primarily framework JavaScript and main-thread evaluation on the throttled device profile.
+
+The final production browser regression suite passed 13/13 in 32.1s. GitHub Actions is supplied as a template because the publishing credential lacks workflow scope. Vercel's Git deployment connection is installed.
 
 Production results: `/guide/linear-app-9e9650581b3d` and `/guide/dropboxapi-com-bbee2e1c65c4`. Both are explicitly labeled public-document scans, not fully synthesized approval guides.
 
