@@ -246,6 +246,68 @@ describe("research source boundaries", () => {
         .requirements[0]?.evidence,
     ).toBe("documented");
   });
+  it("gates the observed Distribute step and does not turn publication review into a technical workspace-setting lock", () => {
+    const guide = asanaDraft();
+    const wrong =
+      "You cannot enable 'Any workspace' sharing for actual external users until passing directory submission requirements.";
+    const wrongCriteria =
+      "Submit for review and pass Asana’s app directory criteria before legitimate public distribution.";
+    guide.requirements = [
+      {
+        text: wrongCriteria,
+        evidence: "documented",
+        sourceIds: [asanaPublication.source.id],
+        quote: "Submit for review",
+      },
+    ];
+    guide.steps = [
+      {
+        ...guide.steps[0]!,
+        id: "settings",
+        title: "Set app sharing/distribution settings",
+        description:
+          "Choose Any workspace for the technical authorization setting.",
+      },
+      {
+        ...guide.steps[1]!,
+        id: "distribute",
+        title: "Distribute and monitor app usage in external organizations",
+        description: "Share the authorized installation URL.",
+      },
+    ];
+    guide.blockers = [
+      {
+        title: "Confirm the applicable review policy",
+        description: wrong,
+        action:
+          "Complete and submit the app listing form, then wait for review response.",
+        sourceIds: [asanaPublication.source.id],
+      },
+    ];
+    const result = applyLaunchSafeguards(
+      guide,
+      [asanaPublication, asanaSharing],
+      "oauth2",
+      "public",
+    );
+    const gate = result.steps.findIndex(
+      (step) => step.id === "asana-confirm-external-review",
+    );
+    expect(gate).toBeGreaterThan(
+      result.steps.findIndex((step) => step.id === "settings"),
+    );
+    expect(gate).toBeLessThan(
+      result.steps.findIndex((step) => step.id === "distribute"),
+    );
+    expect(JSON.stringify(result)).not.toContain(wrong);
+    expect(JSON.stringify(result)).not.toContain(wrongCriteria);
+    expect(
+      result.blockers.some((blocker) =>
+        /cannot enable/i.test(blocker.description),
+      ),
+    ).toBe(false);
+    expect(() => assertGuide(result)).not.toThrow();
+  });
   it("does not invent an Asana policy gate or timing from missing, unrelated, or incomplete source evidence", () => {
     const guide = asanaDraft();
     guide.approval = "Review route unknown";

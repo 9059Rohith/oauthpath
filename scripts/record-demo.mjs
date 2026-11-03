@@ -254,9 +254,9 @@ try {
   );
 } finally {
   await context.close();
+  await video.saveAs(path.join(output, "oauthpath-demo-raw.webm"));
   await browser.close();
 }
-await video.saveAs(path.join(output, "oauthpath-demo-raw.webm"));
 console.log(
   JSON.stringify({
     ...result,

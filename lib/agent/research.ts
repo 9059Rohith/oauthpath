@@ -728,14 +728,24 @@ function applyAsanaSourcePolicy(
   const policy = external
     ? "The publication policy requires submission when making the app available beyond your own organization or development environment. Confirm the applicable review route with Asana before external rollout; Any workspace authorization is not evidence of a review exemption."
     : "Before expanding beyond your organization or development environment, confirm Asana's publication-policy submission requirement. Do not interpret Any workspace authorization as an exemption from external-distribution review.";
+  const settingLock = (value: string) =>
+    /any workspace/i.test(value) &&
+    /cannot|can't|unable|not (?:enable|available)|until/i.test(value) &&
+    /review|submi(?:t|ssion)|approv|directory/i.test(value);
   const contraryClaim = (value: string) =>
-    /review|submi(?:t|ssion)|approv|publish/i.test(value) &&
-    /only|optional|not required|no\b|without|unnecessary|not need|do not need/i.test(
-      value,
-    ) &&
-    /directory|marketplace|external|workspace/i.test(value) &&
-    (!/admin|customer/i.test(value) ||
-      /directory|marketplace|provider|publication/i.test(value));
+    settingLock(value) ||
+    (/directory|marketplace/i.test(value) &&
+      /pass|criteria|approv/i.test(value) &&
+      /before.{0,50}(?:public|external).{0,30}(?:distribution|rollout|launch)/i.test(
+        value,
+      )) ||
+    (/review|submi(?:t|ssion)|approv|publish/i.test(value) &&
+      /only|optional|not required|no\b|without|unnecessary|not need|do not need/i.test(
+        value,
+      ) &&
+      /directory|marketplace|external|workspace/i.test(value) &&
+      (!/admin|customer/i.test(value) ||
+        /directory|marketplace|provider|publication/i.test(value)));
   const qualify = (value: string, limit: number) =>
     value
       .split(/(?<=[.!?])\s+/)
@@ -799,7 +809,9 @@ function applyAsanaSourcePolicy(
   );
   if (reviewIndex >= 0) guide.steps.splice(reviewIndex, 1);
   const releaseIndex = guide.steps.findIndex((step) =>
-    /invite|release|roll.?out|launch|share.*(link|users)/i.test(step.title),
+    /\bdistribute\b|invite|release|roll.?out|launch|share.*(link|users)/i.test(
+      step.title,
+    ),
   );
   const reviewStep: Guide["steps"][number] = {
     id: "asana-confirm-external-review",
@@ -825,8 +837,12 @@ function applyAsanaSourcePolicy(
     title: contraryClaim(blocker.title)
       ? "Confirm the applicable review policy"
       : blocker.title,
-    description: qualify(blocker.description, 700),
-    action: qualify(blocker.action, 800),
+    description: settingLock(blocker.description)
+      ? "Any workspace is a technical authorization setting. The retrieved publication policy does not establish that this setting is technically locked until review; it separately requires submission for external availability."
+      : qualify(blocker.description, 700),
+    action: settingLock(blocker.description)
+      ? "Ask Asana to reconcile the publication and sharing instructions before external rollout. Continue internal setup and testing while clarification is pending."
+      : qualify(blocker.action, 800),
     sourceIds: [blocker.title, blocker.description, blocker.action].some(
       contraryClaim,
     )
