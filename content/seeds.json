@@ -1,0 +1,1483 @@
+[
+  {
+    "updatedAt": "2026-11-03",
+    "slug": "github",
+    "name": "GitHub",
+    "domain": "github.com",
+    "category": "Developer tools",
+    "color": "#d4d9e2",
+    "summary": "Self-serve registration. Decide whether an OAuth App or a fine-grained GitHub App fits before you build.",
+    "difficulty": "Straightforward",
+    "effort": "1–3 hours · planning estimate for a first test connection",
+    "wait": "No registration review described; organization approval can add an unknown wait",
+    "approval": "Organization access may need owner approval",
+    "scenario": "User-authorized GitHub.com integration; organization policies still apply",
+    "sources": [
+      {
+        "id": "registration",
+        "title": "Register an OAuth app",
+        "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app"
+      },
+      {
+        "id": "oauth",
+        "title": "Authorize an OAuth app",
+        "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps"
+      },
+      {
+        "id": "org",
+        "title": "Organization OAuth restrictions",
+        "url": "https://docs.github.com/en/organizations/managing-oauth-access-to-your-organizations-data/about-oauth-app-access-restrictions"
+      }
+    ],
+    "requirements": [
+      {
+        "text": "An owning personal account or organization where you have administrative access.",
+        "evidence": "documented",
+        "sourceIds": [
+          "registration"
+        ]
+      },
+      {
+        "text": "Application name, homepage and callback URL.",
+        "evidence": "documented",
+        "sourceIds": [
+          "registration"
+        ]
+      },
+      {
+        "text": "Organization-owner approval when access restrictions apply.",
+        "evidence": "documented",
+        "sourceIds": [
+          "org"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "choose",
+        "title": "Choose the app model",
+        "description": "Prefer a GitHub App when repository-level permissions or app-owned automation are needed.",
+        "owner": "Together",
+        "doneWhen": "App model recorded with rationale.",
+        "ifBlocked": "Revisit which resources the agent needs.",
+        "sourceIds": [
+          "registration"
+        ]
+      },
+      {
+        "id": "register",
+        "title": "Register the application",
+        "description": "Open Settings → Developer settings → OAuth apps → New OAuth App. Enter your app details.",
+        "owner": "You",
+        "doneWhen": "Client ID appears in your app settings.",
+        "ifBlocked": "Check ownership permissions.",
+        "sourceIds": [
+          "registration"
+        ]
+      },
+      {
+        "id": "callback",
+        "title": "Set your callback",
+        "description": "Register the callback your server actually handles. Keep the client secret server-side.",
+        "owner": "Together",
+        "doneWhen": "Configured callback matches your integration.",
+        "ifBlocked": "Compare request and registered callback.",
+        "sourceIds": [
+          "registration",
+          "oauth"
+        ]
+      },
+      {
+        "id": "implement",
+        "title": "Implement authorization",
+        "description": "Use the authorization-code flow with state and S256 PKCE; exchange the code on your backend.",
+        "owner": "Agent",
+        "doneWhen": "A consenting test user completes the callback.",
+        "ifBlocked": "Inspect the provider error without logging tokens.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "access",
+        "title": "Check organization access",
+        "description": "Test a resource the user is allowed to access; request owner approval if organization policy blocks it.",
+        "owner": "Together",
+        "doneWhen": "Expected resource is accessible.",
+        "ifBlocked": "Ask the organization owner to review the app.",
+        "sourceIds": [
+          "org"
+        ]
+      },
+      {
+        "id": "tokens",
+        "title": "Handle token renewal",
+        "description": "Implement renewal for expiring tokens and test reconnect after revocation.",
+        "owner": "Agent",
+        "doneWhen": "The integration handles expiry and disconnect.",
+        "ifBlocked": "Check the app's token-expiration settings.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "blockers": [
+      {
+        "title": "Connected, but organization data is missing",
+        "description": "User consent does not override organization OAuth restrictions.",
+        "action": "Request organization-owner approval.",
+        "sourceIds": [
+          "org"
+        ]
+      },
+      {
+        "title": "Callback or PKCE mismatch",
+        "description": "The authorization request and code exchange must agree.",
+        "action": "Use the same callback and matching verifier; restart authorization.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "technical": [
+      {
+        "label": "Authorize",
+        "value": "https://github.com/login/oauth/authorize",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Token",
+        "value": "https://github.com/login/oauth/access_token",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "PKCE",
+        "value": "S256 supported and strongly recommended.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Token lifecycle",
+        "value": "Expiring-token mode requires refresh handling; inspect the actual response.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "uncertainties": [
+      "No authenticated registration or token exchange was performed for this guide.",
+      "Customer organization restrictions and approval turnaround are not known."
+    ],
+    "agentCan": [
+      "Draft callback and permission configuration.",
+      "Implement the callback and renewal tests.",
+      "Prepare an organization approval request."
+    ],
+    "humanMust": [
+      "Own or administer the provider app.",
+      "Authorize test access and approve requested permissions."
+    ]
+  },
+  {
+    "updatedAt": "2026-11-03",
+    "slug": "notion",
+    "name": "Notion",
+    "domain": "notion.so",
+    "category": "Productivity",
+    "color": "#e9e9e6",
+    "summary": "A public OAuth integration can connect users across workspaces. Marketplace listing is a separate, optional review.",
+    "difficulty": "Some setup",
+    "effort": "2–4 hours · planning estimate for a first test connection",
+    "wait": "OAuth can start after configuration; optional Marketplace review time is unknown",
+    "approval": "Marketplace listing optional; installation scope chosen at creation",
+    "scenario": "Public integration for users in any Notion workspace",
+    "sources": [
+      {
+        "id": "public",
+        "title": "Public integrations",
+        "url": "https://developers.notion.com/guides/connections-and-tokens/public-integrations/overview"
+      },
+      {
+        "id": "oauth",
+        "title": "Authorization flow",
+        "url": "https://developers.notion.com/guides/authorization/overview"
+      },
+      {
+        "id": "scoped",
+        "title": "Scoped OAuth integrations",
+        "url": "https://developers.notion.com/guides/connections-and-tokens/oauth-integrations/overview"
+      }
+    ],
+    "requirements": [
+      {
+        "text": "Choose Any workspace for public distribution.",
+        "evidence": "documented",
+        "sourceIds": [
+          "public"
+        ]
+      },
+      {
+        "text": "Configure redirect URIs and OAuth client credentials.",
+        "evidence": "documented",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "text": "Select only needed capabilities; users select page access.",
+        "evidence": "documented",
+        "sourceIds": [
+          "public"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "scope",
+        "title": "Choose installation scope",
+        "description": "Select Any workspace for external customers. A selected-workspaces integration cannot later change its installation scope.",
+        "owner": "You",
+        "doneWhen": "Audience choice matches the product.",
+        "ifBlocked": "Create a new integration if the existing scope is wrong.",
+        "sourceIds": [
+          "scoped"
+        ]
+      },
+      {
+        "id": "create",
+        "title": "Create a public connection",
+        "description": "In the Developer portal, create a connection and configure its name, capabilities and redirect URIs.",
+        "owner": "You",
+        "doneWhen": "Configuration is saved.",
+        "ifBlocked": "Confirm you created an OAuth connection rather than a PAT.",
+        "sourceIds": [
+          "public",
+          "oauth"
+        ]
+      },
+      {
+        "id": "authorize",
+        "title": "Add the authorization link",
+        "description": "Use the connection's authorization URL from Configuration and bind a state value to the user's session.",
+        "owner": "Agent",
+        "doneWhen": "A user reaches Notion consent.",
+        "ifBlocked": "Check client ID and redirect URI.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "exchange",
+        "title": "Exchange and store tokens",
+        "description": "Exchange the returned code server-side. Store access and refresh credentials securely.",
+        "owner": "Agent",
+        "doneWhen": "The callback creates the user's connection.",
+        "ifBlocked": "Restart consent if the code exchange fails.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "pages",
+        "title": "Test selected-page access",
+        "description": "Have a test user select a page and verify the requested operation on it.",
+        "owner": "Together",
+        "doneWhen": "The app accesses only authorized content.",
+        "ifBlocked": "Reauthorize and select the missing page.",
+        "sourceIds": [
+          "public"
+        ]
+      },
+      {
+        "id": "listing",
+        "title": "Decide whether to list",
+        "description": "OAuth does not require Marketplace submission. Prepare a separate listing only if discovery is useful.",
+        "owner": "You",
+        "doneWhen": "Distribution decision is documented.",
+        "ifBlocked": "Review the current Marketplace submission guidance.",
+        "sourceIds": [
+          "public",
+          "oauth"
+        ]
+      }
+    ],
+    "blockers": [
+      {
+        "title": "Wrong installation scope",
+        "description": "Selected-workspaces scope excludes other workspaces and is immutable.",
+        "action": "Create a new public integration.",
+        "sourceIds": [
+          "scoped"
+        ]
+      },
+      {
+        "title": "A page is unavailable",
+        "description": "OAuth page selection controls access.",
+        "action": "Ask the user to authorize the relevant content.",
+        "sourceIds": [
+          "public"
+        ]
+      }
+    ],
+    "technical": [
+      {
+        "label": "Authorize",
+        "value": "https://api.notion.com/v1/oauth/authorize",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Token",
+        "value": "https://api.notion.com/v1/oauth/token",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Flow",
+        "value": "Authorization code; owner=user.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Credentials",
+        "value": "Use the returned access and refresh tokens; never expose them in the browser.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "uncertainties": [
+      "Marketplace turnaround was not established.",
+      "No workspace login or real authorization was attempted."
+    ],
+    "agentCan": [
+      "Draft capabilities and callback settings.",
+      "Implement token exchange and renewal.",
+      "Prepare a page-access test checklist."
+    ],
+    "humanMust": [
+      "Create and own the connection.",
+      "Choose installation scope and consent to page access."
+    ]
+  },
+  {
+    "updatedAt": "2026-11-03",
+    "slug": "slack",
+    "name": "Slack",
+    "domain": "slack.com",
+    "category": "Communication",
+    "color": "#c398c9",
+    "summary": "Pilot across workspaces with OAuth; assess Marketplace suitability before planning commercial distribution.",
+    "difficulty": "Review required",
+    "effort": "3–6 hours · planning estimate for OAuth and a pilot checklist",
+    "wait": "Marketplace review and customer admin approval: unknown",
+    "approval": "Commercial distribution should go through Slack Marketplace review",
+    "scenario": "Commercial agent integration distributed to external workspaces",
+    "sources": [
+      {
+        "id": "distribution",
+        "title": "App lifecycle and distribution",
+        "url": "https://docs.slack.dev/app-management/distribution/"
+      },
+      {
+        "id": "oauth",
+        "title": "Installing with OAuth",
+        "url": "https://docs.slack.dev/authentication/installing-with-oauth/"
+      },
+      {
+        "id": "review",
+        "title": "Marketplace guidelines",
+        "url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-app-guidelines-and-requirements/"
+      }
+    ],
+    "requirements": [
+      {
+        "text": "HTTPS callback and other applicable app URLs.",
+        "evidence": "documented",
+        "sourceIds": [
+          "distribution"
+        ]
+      },
+      {
+        "text": "Separate bot scopes from user scopes.",
+        "evidence": "documented",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "text": "A Marketplace-suitable use case; an MCP-only server without meaningful in-Slack functionality is listed as unsuitable.",
+        "evidence": "documented",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "fit",
+        "title": "Check the use case first",
+        "description": "Compare the planned agent behavior with Marketplace suitability rules before implementing broad data access.",
+        "owner": "Together",
+        "doneWhen": "The product has a documented review path.",
+        "ifBlocked": "Contact Slack if the use case is unclear.",
+        "sourceIds": [
+          "review"
+        ]
+      },
+      {
+        "id": "create",
+        "title": "Create a development app",
+        "description": "Associate the app with a development workspace and configure its OAuth permissions.",
+        "owner": "You",
+        "doneWhen": "The app is available in its development workspace.",
+        "ifBlocked": "Ask a workspace administrator for access.",
+        "sourceIds": [
+          "distribution"
+        ]
+      },
+      {
+        "id": "oauth",
+        "title": "Build the install flow",
+        "description": "Use OAuth v2; request bot permissions in scope and user permissions in user_scope.",
+        "owner": "Agent",
+        "doneWhen": "A test installation returns the expected token type.",
+        "ifBlocked": "Separate Sign in with Slack scopes from API scopes.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "pilot",
+        "title": "Enable a pilot",
+        "description": "Complete Manage Distribution requirements before activating public distribution for a pilot.",
+        "owner": "Together",
+        "doneWhen": "A second authorized workspace can install.",
+        "ifBlocked": "Check HTTPS and workspace admin policy.",
+        "sourceIds": [
+          "distribution"
+        ]
+      },
+      {
+        "id": "packet",
+        "title": "Prepare the review packet",
+        "description": "Document user value, onboarding, scope necessity and the working in-Slack experience.",
+        "owner": "Together",
+        "doneWhen": "The packet addresses current submission rules.",
+        "ifBlocked": "Reduce unnecessary scopes or unsupported functionality.",
+        "sourceIds": [
+          "review"
+        ]
+      },
+      {
+        "id": "submit",
+        "title": "Submit for Marketplace review",
+        "description": "Use the app dashboard to pursue commercial distribution and handle reviewer feedback.",
+        "owner": "You",
+        "doneWhen": "Submission status is recorded.",
+        "ifBlocked": "Resolve reviewer requests and customer admin requirements.",
+        "sourceIds": [
+          "distribution",
+          "review"
+        ]
+      }
+    ],
+    "blockers": [
+      {
+        "title": "MCP-only integration is unsuitable",
+        "description": "Current guidelines exclude an MCP server without meaningful in-Slack functionality.",
+        "action": "Design a qualifying Slack experience or ask Slack about eligibility.",
+        "sourceIds": [
+          "review"
+        ]
+      },
+      {
+        "title": "Customer installation is blocked",
+        "description": "A workspace may require admin approval or listed apps.",
+        "action": "Send the administrator the app and scope justification.",
+        "sourceIds": [
+          "distribution"
+        ]
+      }
+    ],
+    "technical": [
+      {
+        "label": "Authorize",
+        "value": "https://slack.com/oauth/v2/authorize",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Token",
+        "value": "https://slack.com/api/oauth.v2.access",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Scope parameters",
+        "value": "scope for bot; user_scope for user permissions.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Redirects",
+        "value": "HTTPS; consistent redirect URI throughout the exchange.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "uncertainties": [
+      "Review duration and customer-specific administration policies are unknown.",
+      "OAuth and Marketplace submission have not been executed for this guide."
+    ],
+    "agentCan": [
+      "Draft a permission matrix.",
+      "Generate callback code and onboarding checks.",
+      "Assemble review answers from your product facts."
+    ],
+    "humanMust": [
+      "Administer the development workspace.",
+      "Approve permissions and submit the review packet."
+    ]
+  },
+  {
+    "updatedAt": "2026-11-03",
+    "slug": "google",
+    "name": "Google / Gmail",
+    "domain": "google.com",
+    "category": "Communication",
+    "color": "#82aaf3",
+    "summary": "Your scopes determine the path. Sending mail is sensitive; reading a mailbox is restricted and can add a security assessment.",
+    "difficulty": "Review required",
+    "effort": "4–8 hours · planning estimate for setup and review preparation, excluding assessment",
+    "wait": "Restricted-scope verification can take several weeks; your completion date is unknown",
+    "approval": "Verification for public sensitive/restricted access unless an exception applies",
+    "scenario": "External Gmail integration that reads mailbox data through a backend",
+    "sources": [
+      {
+        "id": "scopes",
+        "title": "Gmail scope classifications",
+        "url": "https://developers.google.com/workspace/gmail/api/auth/scopes"
+      },
+      {
+        "id": "review",
+        "title": "Restricted scope verification",
+        "url": "https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification"
+      },
+      {
+        "id": "consent",
+        "title": "Configure consent and scopes",
+        "url": "https://developers.google.com/workspace/guides/configure-oauth-consent"
+      }
+    ],
+    "requirements": [
+      {
+        "text": "Declare the minimum scopes for the actual feature.",
+        "evidence": "documented",
+        "sourceIds": [
+          "scopes"
+        ]
+      },
+      {
+        "text": "Configure branding, audience and consent details in Google Auth platform.",
+        "evidence": "documented",
+        "sourceIds": [
+          "consent"
+        ]
+      },
+      {
+        "text": "Assess restricted-data handling and the applicable security assessment requirement.",
+        "evidence": "documented",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "scope",
+        "title": "Map features to scopes",
+        "description": "Separate send-only from mailbox reading. gmail.send is sensitive; gmail.readonly is restricted.",
+        "owner": "Together",
+        "doneWhen": "Each feature maps to its minimum scope.",
+        "ifBlocked": "Remove capabilities your first release does not need.",
+        "sourceIds": [
+          "scopes"
+        ]
+      },
+      {
+        "id": "project",
+        "title": "Configure the project",
+        "description": "Set up Google Auth platform branding, audience and data access for your environment.",
+        "owner": "You",
+        "doneWhen": "Consent configuration matches the product.",
+        "ifBlocked": "Check account and project permissions.",
+        "sourceIds": [
+          "consent"
+        ]
+      },
+      {
+        "id": "test",
+        "title": "Add test users",
+        "description": "For external testing, configure eligible testers and test the requested permissions.",
+        "owner": "Together",
+        "doneWhen": "An intended tester completes consent.",
+        "ifBlocked": "Check audience and test-user configuration.",
+        "sourceIds": [
+          "consent"
+        ]
+      },
+      {
+        "id": "evidence",
+        "title": "Prepare verification evidence",
+        "description": "Align domain ownership, public product information and privacy disclosures with actual data use.",
+        "owner": "Together",
+        "doneWhen": "Review materials accurately describe the app.",
+        "ifBlocked": "Resolve inconsistent branding or unsupported claims.",
+        "sourceIds": [
+          "review"
+        ]
+      },
+      {
+        "id": "assessment",
+        "title": "Resolve assessment requirements",
+        "description": "For restricted data accessed through your backend, determine assessment obligations and engage an approved assessor when required.",
+        "owner": "You",
+        "doneWhen": "The security-assessment path is confirmed.",
+        "ifBlocked": "Clarify exceptions and scope with Google before committing.",
+        "sourceIds": [
+          "review"
+        ]
+      },
+      {
+        "id": "submit",
+        "title": "Submit and track review",
+        "description": "Submit the production scope request, record feedback and rerun the consent flow after approval.",
+        "owner": "You",
+        "doneWhen": "Required verification is approved.",
+        "ifBlocked": "Answer the review team's specific requests.",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "blockers": [
+      {
+        "title": "Reading mail adds assessment work",
+        "description": "Read-only does not mean non-sensitive: gmail.readonly is restricted.",
+        "action": "Validate whether the feature truly needs mailbox access.",
+        "sourceIds": [
+          "scopes"
+        ]
+      },
+      {
+        "title": "Testing is mistaken for launch approval",
+        "description": "Test consent does not establish production eligibility.",
+        "action": "Complete the relevant verification path before broad release.",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "technical": [
+      {
+        "label": "Send-only scope",
+        "value": "https://www.googleapis.com/auth/gmail.send · sensitive",
+        "sourceIds": [
+          "scopes"
+        ]
+      },
+      {
+        "label": "Mailbox-read scope",
+        "value": "https://www.googleapis.com/auth/gmail.readonly · restricted",
+        "sourceIds": [
+          "scopes"
+        ]
+      },
+      {
+        "label": "Audience",
+        "value": "Internal and External have different eligibility and testing settings.",
+        "sourceIds": [
+          "consent"
+        ]
+      },
+      {
+        "label": "Data access",
+        "value": "Declare the scopes used by the product in the consent configuration.",
+        "sourceIds": [
+          "consent"
+        ]
+      }
+    ],
+    "uncertainties": [
+      "Your exact verification exceptions, assessment fee and completion date are unknown.",
+      "No consent flow, domain verification or assessor review was performed."
+    ],
+    "agentCan": [
+      "Map operations to scopes.",
+      "Draft scope justifications and a demo script.",
+      "Check public URLs and assemble a review checklist."
+    ],
+    "humanMust": [
+      "Own the project and verify the domain.",
+      "Approve disclosures and any assessor agreement."
+    ]
+  },
+  {
+    "updatedAt": "2026-11-03",
+    "slug": "linkedin",
+    "name": "LinkedIn",
+    "domain": "linkedin.com",
+    "category": "Sales & CRM",
+    "color": "#72abe8",
+    "summary": "Product access comes before OAuth. Basic sign-in is self-service; many business APIs require explicit program approval.",
+    "difficulty": "Access gated",
+    "effort": "2–4 hours · planning estimate for registration and an access application",
+    "wait": "Product or partner approval: unknown",
+    "approval": "Depends on the requested product; sign-in has a self-service route",
+    "scenario": "A business-data agent requesting APIs beyond basic LinkedIn sign-in",
+    "sources": [
+      {
+        "id": "access",
+        "title": "Getting API access",
+        "url": "https://learn.microsoft.com/en-us/linkedin/shared/authentication/getting-access"
+      },
+      {
+        "id": "oauth",
+        "title": "Authorization-code flow",
+        "url": "https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow"
+      },
+      {
+        "id": "oidc",
+        "title": "Sign in with OpenID Connect",
+        "url": "https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2"
+      }
+    ],
+    "requirements": [
+      {
+        "text": "Identify the product that grants the required API permissions.",
+        "evidence": "documented",
+        "sourceIds": [
+          "access"
+        ]
+      },
+      {
+        "text": "Register an HTTPS callback and keep the client secret private.",
+        "evidence": "documented",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "text": "Use OIDC sign-in scopes only for the supported identity use case.",
+        "evidence": "documented",
+        "sourceIds": [
+          "oidc"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "product",
+        "title": "Identify the needed product",
+        "description": "Match your feature to Open Permissions or a relevant partner program.",
+        "owner": "Together",
+        "doneWhen": "The intended API and access route are recorded.",
+        "ifBlocked": "Treat unavailable access as a launch blocker.",
+        "sourceIds": [
+          "access"
+        ]
+      },
+      {
+        "id": "register",
+        "title": "Create the developer app",
+        "description": "Configure the application and inspect its available products and permissions.",
+        "owner": "You",
+        "doneWhen": "The app exists with an accountable owner.",
+        "ifBlocked": "Check the Developer Portal's current prerequisites.",
+        "sourceIds": [
+          "access",
+          "oauth"
+        ]
+      },
+      {
+        "id": "apply",
+        "title": "Request product access",
+        "description": "Use Products to request the appropriate product; submit a concrete use case where approval is required.",
+        "owner": "You",
+        "doneWhen": "The request and its status are recorded.",
+        "ifBlocked": "Use the product-specific support or partner route.",
+        "sourceIds": [
+          "access"
+        ]
+      },
+      {
+        "id": "callback",
+        "title": "Register the callback",
+        "description": "Set the absolute HTTPS redirect under Auth and retrieve credentials securely.",
+        "owner": "You",
+        "doneWhen": "The callback is saved.",
+        "ifBlocked": "Remove fragments and verify the registered URL.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "connect",
+        "title": "Implement code exchange",
+        "description": "Request only available scopes, validate state, and exchange the authorization code server-side.",
+        "owner": "Agent",
+        "doneWhen": "An authorized test user connects.",
+        "ifBlocked": "Check that requested scopes are enabled for the app.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "confirm",
+        "title": "Verify actual API access",
+        "description": "Test the approved feature and plan reconnect behavior for token expiry.",
+        "owner": "Together",
+        "doneWhen": "The target API works under granted access.",
+        "ifBlocked": "Do not infer business-data access from successful sign-in.",
+        "sourceIds": [
+          "oauth",
+          "oidc"
+        ]
+      }
+    ],
+    "blockers": [
+      {
+        "title": "Sign-in is mistaken for business API access",
+        "description": "OIDC sign-in does not grant every LinkedIn product.",
+        "action": "Request the product that owns the required permission.",
+        "sourceIds": [
+          "access",
+          "oidc"
+        ]
+      },
+      {
+        "title": "A requested scope is unavailable",
+        "description": "Scopes depend on the products enabled for your application.",
+        "action": "Inspect Auth and Products, then request the correct access.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "technical": [
+      {
+        "label": "Authorize",
+        "value": "https://www.linkedin.com/oauth/v2/authorization",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Token",
+        "value": "https://www.linkedin.com/oauth/v2/accessToken",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "OIDC",
+        "value": "openid, profile and email support the sign-in use case.",
+        "sourceIds": [
+          "oidc"
+        ]
+      },
+      {
+        "label": "Refresh",
+        "value": "Programmatic refresh is limited to eligible partners; do not assume availability.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "uncertainties": [
+      "Eligibility and approval turnaround for your chosen partner product are unknown.",
+      "No product application or authenticated API request was submitted."
+    ],
+    "agentCan": [
+      "Identify the likely access program.",
+      "Draft use-case and permission explanations.",
+      "Build callback validation tests."
+    ],
+    "humanMust": [
+      "Own the application and verify business details.",
+      "Apply for product access and authorize the connection."
+    ]
+  },
+  {
+    "updatedAt": "2026-11-03",
+    "slug": "zoom",
+    "name": "Zoom",
+    "domain": "zoom.us",
+    "category": "Communication",
+    "color": "#8aa8ff",
+    "summary": "Choose management and distribution separately. External beta and public distribution have approval requirements.",
+    "difficulty": "Review required",
+    "effort": "3–6 hours · planning estimate for OAuth and review preparation",
+    "wait": "Beta approval and publishing review: unknown",
+    "approval": "External beta needs approval; published apps undergo review",
+    "scenario": "A user-managed OAuth integration for external Zoom users",
+    "sources": [
+      {
+        "id": "model",
+        "title": "Choose management and distribution",
+        "url": "https://developers.zoom.us/docs/build-flow/before-you-build/"
+      },
+      {
+        "id": "review",
+        "title": "Submit an app for review",
+        "url": "https://developers.zoom.us/docs/build-flow/submitting-apps-for-review/"
+      },
+      {
+        "id": "oauth",
+        "title": "OAuth authorization",
+        "url": "https://developers.zoom.us/docs/integrations/oauth/"
+      }
+    ],
+    "requirements": [
+      {
+        "text": "A Zoom account with developer role permissions.",
+        "evidence": "documented",
+        "sourceIds": [
+          "model"
+        ]
+      },
+      {
+        "text": "Select user-managed or admin-managed behavior to match the feature.",
+        "evidence": "documented",
+        "sourceIds": [
+          "model"
+        ]
+      },
+      {
+        "text": "Verify relevant domains and prepare reviewer access.",
+        "evidence": "documented",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "model",
+        "title": "Choose the management model",
+        "description": "Use user-managed access for individual connections; evaluate admin-managed requirements for account-wide operations.",
+        "owner": "Together",
+        "doneWhen": "Management model matches the intended user.",
+        "ifBlocked": "Ask an account administrator about role permissions.",
+        "sourceIds": [
+          "model"
+        ]
+      },
+      {
+        "id": "create",
+        "title": "Configure the developer app",
+        "description": "Set the app's OAuth configuration and necessary permissions.",
+        "owner": "You",
+        "doneWhen": "The app has the required OAuth credentials.",
+        "ifBlocked": "Confirm developer access is enabled.",
+        "sourceIds": [
+          "model",
+          "oauth"
+        ]
+      },
+      {
+        "id": "implement",
+        "title": "Implement the OAuth flow",
+        "description": "Complete code exchange and securely handle token refresh and revocation.",
+        "owner": "Agent",
+        "doneWhen": "A permitted test account connects.",
+        "ifBlocked": "Inspect OAuth error details without exposing credentials.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "beta",
+        "title": "Plan external testing",
+        "description": "Request approval for external beta testing rather than assuming private-app access includes outsiders.",
+        "owner": "You",
+        "doneWhen": "The allowed test audience is confirmed.",
+        "ifBlocked": "Keep testing inside the permitted audience.",
+        "sourceIds": [
+          "model"
+        ]
+      },
+      {
+        "id": "domain",
+        "title": "Verify domains",
+        "description": "Use the submission page to verify domains associated with callbacks and published URLs.",
+        "owner": "Together",
+        "doneWhen": "Each required domain is verified.",
+        "ifBlocked": "Use a supported TXT, HTML, meta-tag or support route.",
+        "sourceIds": [
+          "review"
+        ]
+      },
+      {
+        "id": "submit",
+        "title": "Prepare and submit review",
+        "description": "Supply app details, reviewer test access and release notes; choose when an approved app should publish.",
+        "owner": "You",
+        "doneWhen": "The review submission is recorded.",
+        "ifBlocked": "Resolve missing metadata and reviewer feedback.",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "blockers": [
+      {
+        "title": "Unlisted is mistaken for unreviewed",
+        "description": "Published unlisted apps still need required metadata and review.",
+        "action": "Prepare the full relevant submission materials.",
+        "sourceIds": [
+          "model"
+        ]
+      },
+      {
+        "title": "The team cannot verify a domain",
+        "description": "Callback and policy domains may need ownership verification.",
+        "action": "Use an available verification method or request manual approval.",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "technical": [
+      {
+        "label": "Token",
+        "value": "https://zoom.us/oauth/token",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "User access",
+        "value": "User-managed apps authorize each user through OAuth.",
+        "sourceIds": [
+          "model"
+        ]
+      },
+      {
+        "label": "Internal automation",
+        "value": "Server-to-server authorization is for your own Zoom account.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Distribution",
+        "value": "Private, beta and published audiences are separate choices.",
+        "sourceIds": [
+          "model"
+        ]
+      }
+    ],
+    "uncertainties": [
+      "The selected scopes may introduce additional review requirements.",
+      "No external beta or publication request was submitted."
+    ],
+    "agentCan": [
+      "Draft app configuration and test instructions.",
+      "Prepare domain-verification steps.",
+      "Assemble review notes and callback tests."
+    ],
+    "humanMust": [
+      "Grant developer permissions and own domains.",
+      "Authorize test access and submit publication requests."
+    ]
+  },
+  {
+    "updatedAt": "2026-11-03",
+    "slug": "shopify",
+    "name": "Shopify",
+    "domain": "shopify.com",
+    "category": "Commerce",
+    "color": "#b8d883",
+    "summary": "Select distribution before investing in launch. Public apps require approval; custom distribution targets a limited merchant audience.",
+    "difficulty": "Review required",
+    "effort": "4–8 hours · planning estimate for a test installation and launch checklist",
+    "wait": "App Store review: unknown",
+    "approval": "Public distribution requires approval; custom distribution differs",
+    "scenario": "Standalone or API-only app for multiple unrelated merchants",
+    "sources": [
+      {
+        "id": "distribution",
+        "title": "About app distribution",
+        "url": "https://shopify.dev/docs/apps/launch/distribution"
+      },
+      {
+        "id": "select",
+        "title": "Select a distribution method",
+        "url": "https://shopify.dev/docs/apps/launch/distribution/select-distribution-method"
+      },
+      {
+        "id": "oauth",
+        "title": "Authenticate standalone apps",
+        "url": "https://shopify.dev/docs/apps/build/authentication-authorization/authenticate-standalone-apps"
+      },
+      {
+        "id": "review",
+        "title": "Shopify App Store review",
+        "url": "https://shopify.dev/docs/apps/launch/app-store-review"
+      }
+    ],
+    "requirements": [
+      {
+        "text": "Choose public distribution for many unrelated merchants.",
+        "evidence": "documented",
+        "sourceIds": [
+          "distribution"
+        ]
+      },
+      {
+        "text": "Use the matching authentication approach for embedded or standalone apps.",
+        "evidence": "documented",
+        "sourceIds": [
+          "distribution",
+          "oauth"
+        ]
+      },
+      {
+        "text": "Prepare an App Store listing and review submission for public distribution.",
+        "evidence": "documented",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "audience",
+        "title": "Decide the merchant audience",
+        "description": "Compare public and custom distribution; the distribution choice cannot later be changed.",
+        "owner": "You",
+        "doneWhen": "The correct audience is recorded.",
+        "ifBlocked": "Pause before confirming the distribution choice.",
+        "sourceIds": [
+          "distribution"
+        ]
+      },
+      {
+        "id": "create",
+        "title": "Configure the app",
+        "description": "Create the app in the Dev Dashboard and set its URLs and necessary scopes.",
+        "owner": "Together",
+        "doneWhen": "App settings match the intended implementation.",
+        "ifBlocked": "Check organization ownership and dashboard permissions.",
+        "sourceIds": [
+          "select",
+          "oauth"
+        ]
+      },
+      {
+        "id": "oauth",
+        "title": "Implement merchant authorization",
+        "description": "For standalone/API-only apps, use authorization code and validate the returned callback.",
+        "owner": "Agent",
+        "doneWhen": "A development-store installation completes.",
+        "ifBlocked": "Verify request integrity and callback configuration.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "test",
+        "title": "Test the authorized operation",
+        "description": "Exchange the code and test the intended GraphQL Admin API operation.",
+        "owner": "Together",
+        "doneWhen": "Only the required merchant data is accessed.",
+        "ifBlocked": "Inspect permissions and the actual token response.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "distribute",
+        "title": "Select the distribution method",
+        "description": "Use the Dev Dashboard Distribution card for a Partner-organization app.",
+        "owner": "You",
+        "doneWhen": "The chosen distribution route is confirmed.",
+        "ifBlocked": "Review app ownership if the card is absent.",
+        "sourceIds": [
+          "select"
+        ]
+      },
+      {
+        "id": "review",
+        "title": "Prepare public launch",
+        "description": "Complete your listing and submit a functioning app for review.",
+        "owner": "Together",
+        "doneWhen": "The review submission is recorded.",
+        "ifBlocked": "Address feedback before expanding distribution.",
+        "sourceIds": [
+          "review"
+        ]
+      }
+    ],
+    "blockers": [
+      {
+        "title": "The distribution choice is wrong",
+        "description": "Public and custom distribution have different audiences and cannot be switched after selection.",
+        "action": "Choose for the launch audience before confirmation.",
+        "sourceIds": [
+          "distribution"
+        ]
+      },
+      {
+        "title": "An embedded-app recipe is used for an API-only agent",
+        "description": "Standalone apps cannot use embedded ID-token flows.",
+        "action": "Use the standalone authorization-code documentation.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "technical": [
+      {
+        "label": "Standalone flow",
+        "value": "OAuth authorization code for standalone or API-only apps.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Embedded flow",
+        "value": "Token exchange is the documented embedded approach.",
+        "sourceIds": [
+          "distribution"
+        ]
+      },
+      {
+        "label": "Custom audience",
+        "value": "One store, stores in the same Plus organization, or development stores.",
+        "sourceIds": [
+          "distribution"
+        ]
+      },
+      {
+        "label": "Installation integrity",
+        "value": "Validate the merchant callback before exchanging its code.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "uncertainties": [
+      "Review turnaround and feature-specific data requirements are unknown.",
+      "No merchant installation or App Store submission was performed."
+    ],
+    "agentCan": [
+      "Draft callback validation and installation tests.",
+      "Prepare a least-privilege scope list.",
+      "Assemble merchant-facing onboarding instructions."
+    ],
+    "humanMust": [
+      "Choose and own the distribution setup.",
+      "Authorize the test store and submit the listing."
+    ]
+  },
+  {
+    "updatedAt": "2026-11-03",
+    "slug": "atlassian",
+    "name": "Atlassian",
+    "domain": "atlassian.com",
+    "category": "Developer tools",
+    "color": "#7b9fff",
+    "summary": "Create one distributable 3LO integration. Enable sharing, map site access, and keep user permissions distinct from OAuth scopes.",
+    "difficulty": "Some setup",
+    "effort": "2–5 hours · planning estimate for an initial Jira connection",
+    "wait": "Sharing can be configured directly; optional approval turnaround is unknown",
+    "approval": "Sharing is enabled separately; unapproved integrations show a warning",
+    "scenario": "Distributable Jira Cloud OAuth 2.0 integration acting for a user",
+    "sources": [
+      {
+        "id": "oauth",
+        "title": "OAuth 2.0 3LO apps",
+        "url": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/"
+      },
+      {
+        "id": "scopes",
+        "title": "Jira OAuth scopes",
+        "url": "https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/"
+      },
+      {
+        "id": "security",
+        "title": "Jira app security",
+        "url": "https://developer.atlassian.com/cloud/jira/platform/security-overview/"
+      }
+    ],
+    "requirements": [
+      {
+        "text": "Create a developer-console OAuth 2.0 integration.",
+        "evidence": "documented",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "text": "Map intended operations to the required Jira scopes.",
+        "evidence": "documented",
+        "sourceIds": [
+          "scopes"
+        ]
+      },
+      {
+        "text": "Use the authorized user's permissions as an additional access boundary.",
+        "evidence": "documented",
+        "sourceIds": [
+          "scopes"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "create",
+        "title": "Create the integration",
+        "description": "Choose OAuth 2.0 integration in the Developer console.",
+        "owner": "You",
+        "doneWhen": "The app exists.",
+        "ifBlocked": "Check developer-account access.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "permissions",
+        "title": "Map API operations",
+        "description": "Read each operation's OAuth requirements; add only needed APIs and scopes.",
+        "owner": "Together",
+        "doneWhen": "Every feature has a scope mapping.",
+        "ifBlocked": "Check whether the API supports your app type.",
+        "sourceIds": [
+          "scopes"
+        ]
+      },
+      {
+        "id": "callback",
+        "title": "Configure authorization",
+        "description": "Set the callback under Authorization and use state with the code flow.",
+        "owner": "Agent",
+        "doneWhen": "Callback configuration is saved.",
+        "ifBlocked": "Compare the requested and registered URL.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "sites",
+        "title": "Test site access",
+        "description": "Use accessible-resources and the returned cloud ID to address Jira API requests.",
+        "owner": "Agent",
+        "doneWhen": "The intended site is accessible.",
+        "ifBlocked": "Check user permissions as well as scopes.",
+        "sourceIds": [
+          "oauth",
+          "scopes"
+        ]
+      },
+      {
+        "id": "share",
+        "title": "Enable sharing",
+        "description": "Enable Distribution sharing and distribute the authorization URL.",
+        "owner": "You",
+        "doneWhen": "Another intended user can consent.",
+        "ifBlocked": "Explain the unapproved-app warning accurately.",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "id": "maintain",
+        "title": "Validate permission boundaries",
+        "description": "Test with a user lacking administrative permissions and confirm that the integration cannot exceed them.",
+        "owner": "Together",
+        "doneWhen": "Expected denied actions remain denied.",
+        "ifBlocked": "Revisit the feature's actual permission needs.",
+        "sourceIds": [
+          "scopes",
+          "security"
+        ]
+      }
+    ],
+    "blockers": [
+      {
+        "title": "A scope is mistaken for permission",
+        "description": "A scope does not grant permissions the user lacks.",
+        "action": "Use an appropriately authorized user or adjust the feature.",
+        "sourceIds": [
+          "scopes"
+        ]
+      },
+      {
+        "title": "Every customer is asked to create an app",
+        "description": "Atlassian recommends a single distributable 3LO integration and prohibits the described customer-app collection pattern.",
+        "action": "Build and share one integration.",
+        "sourceIds": [
+          "oauth"
+        ]
+      }
+    ],
+    "technical": [
+      {
+        "label": "Authorize",
+        "value": "https://auth.atlassian.com/authorize",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "Token",
+        "value": "https://auth.atlassian.com/oauth/token",
+        "sourceIds": [
+          "oauth"
+        ]
+      },
+      {
+        "label": "API access",
+        "value": "OAuth access tokens authorize requests within scopes and user permissions.",
+        "sourceIds": [
+          "security"
+        ]
+      },
+      {
+        "label": "Scope selection",
+        "value": "Consult each operation's required scopes; adding scopes may require consent.",
+        "sourceIds": [
+          "scopes"
+        ]
+      }
+    ],
+    "uncertainties": [
+      "Approval turnaround and each customer's organization controls are unknown.",
+      "No authenticated Jira request or sharing setup was performed."
+    ],
+    "agentCan": [
+      "Map Jira endpoints to scopes.",
+      "Generate callback and permission tests.",
+      "Draft customer onboarding instructions."
+    ],
+    "humanMust": [
+      "Own the developer-console integration.",
+      "Authorize site access and enable sharing."
+    ]
+  }
+]

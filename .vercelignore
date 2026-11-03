@@ -1,0 +1,6 @@
+.local
+.env*
+!.env.example
+docs/ui-concept.png
+test-results
+playwright-report

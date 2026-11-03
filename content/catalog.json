@@ -1,0 +1,82 @@
+[
+  {
+    "slug": "github",
+    "name": "GitHub",
+    "domain": "github.com",
+    "category": "Developer tools",
+    "color": "#d4d9e2",
+    "summary": "Self-serve registration. Decide whether an OAuth App or a fine-grained GitHub App fits before you build.",
+    "difficulty": "Straightforward",
+    "effort": "1–3 hours · planning estimate for a first test connection"
+  },
+  {
+    "slug": "notion",
+    "name": "Notion",
+    "domain": "notion.so",
+    "category": "Productivity",
+    "color": "#e9e9e6",
+    "summary": "A public OAuth integration can connect users across workspaces. Marketplace listing is a separate, optional review.",
+    "difficulty": "Some setup",
+    "effort": "2–4 hours · planning estimate for a first test connection"
+  },
+  {
+    "slug": "slack",
+    "name": "Slack",
+    "domain": "slack.com",
+    "category": "Communication",
+    "color": "#c398c9",
+    "summary": "Pilot across workspaces with OAuth; assess Marketplace suitability before planning commercial distribution.",
+    "difficulty": "Review required",
+    "effort": "3–6 hours · planning estimate for OAuth and a pilot checklist"
+  },
+  {
+    "slug": "google",
+    "name": "Google / Gmail",
+    "domain": "google.com",
+    "category": "Communication",
+    "color": "#82aaf3",
+    "summary": "Your scopes determine the path. Sending mail is sensitive; reading a mailbox is restricted and can add a security assessment.",
+    "difficulty": "Review required",
+    "effort": "4–8 hours · planning estimate for setup and review preparation, excluding assessment"
+  },
+  {
+    "slug": "linkedin",
+    "name": "LinkedIn",
+    "domain": "linkedin.com",
+    "category": "Sales & CRM",
+    "color": "#72abe8",
+    "summary": "Product access comes before OAuth. Basic sign-in is self-service; many business APIs require explicit program approval.",
+    "difficulty": "Access gated",
+    "effort": "2–4 hours · planning estimate for registration and an access application"
+  },
+  {
+    "slug": "zoom",
+    "name": "Zoom",
+    "domain": "zoom.us",
+    "category": "Communication",
+    "color": "#8aa8ff",
+    "summary": "Choose management and distribution separately. External beta and public distribution have approval requirements.",
+    "difficulty": "Review required",
+    "effort": "3–6 hours · planning estimate for OAuth and review preparation"
+  },
+  {
+    "slug": "shopify",
+    "name": "Shopify",
+    "domain": "shopify.com",
+    "category": "Commerce",
+    "color": "#b8d883",
+    "summary": "Select distribution before investing in launch. Public apps require approval; custom distribution targets a limited merchant audience.",
+    "difficulty": "Review required",
+    "effort": "4–8 hours · planning estimate for a test installation and launch checklist"
+  },
+  {
+    "slug": "atlassian",
+    "name": "Atlassian",
+    "domain": "atlassian.com",
+    "category": "Developer tools",
+    "color": "#7b9fff",
+    "summary": "Create one distributable 3LO integration. Enable sharing, map site access, and keep user permissions distinct from OAuth scopes.",
+    "difficulty": "Some setup",
+    "effort": "2–5 hours · planning estimate for an initial Jira connection"
+  }
+]
